@@ -26,6 +26,20 @@
   --bounce: cubic-bezier(.34,1.56,.64,1);
 }
 
+@font-face {
+  font-family: "Outfit";
+  src: url("fonts/Outfit-Variable.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 100 900;
+}
+
+@font-face {
+  font-family: "Playfair Display";
+  src: url("fonts/PlayfairDisplay-Variable.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400 900;
+}
+
 /* ---------------- Themes ---------------- */
 body[data-theme="green"]  { --base:#04201a; --c1:#6effbb; --c2:#0fc482; --c3:#0a6f8a; --c4:#0a4a35; --accent:#3fd996; }
 body[data-theme="blue"]   { --base:#04162b; --c1:#7fe0ff; --c2:#2b8ae8; --c3:#5f4fd0; --c4:#0b3a6b; --accent:#4bb4ff; }
@@ -926,6 +940,9 @@ body[data-scale="more"]    { --scale: .88; }
 .dock a { width: calc(46px * var(--scale, 1)); height: calc(46px * var(--scale, 1)); }
 
 /* clock font */
+body[data-clock-font="wide"]  .clock { letter-spacing: .04em; font-weight: 250; }
+body[data-clock-font="serif"] .clock { font-family: "Georgia", "Times New Roman", serif; font-weight: 400; letter-spacing: -.02em; }
+body[data-clock-font="mono"]  .clock { font-family: "Cascadia Code", Consolas, "SF Mono", ui-monospace, monospace; font-weight: 300; letter-spacing: -.04em; }
 body[data-clock-font="outfit"] .clock {
   font-family: "Outfit", "Segoe UI Variable Display", "Segoe UI", sans-serif;
   font-weight: 300;
