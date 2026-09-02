@@ -1060,9 +1060,16 @@ body[data-scale="more"]    { --scale: .88; }
 .dock a { width: calc(46px * var(--scale, 1)); height: calc(46px * var(--scale, 1)); }
 
 /* clock font */
-body[data-clock-font="wide"]  .clock { letter-spacing: .04em; font-weight: 250; }
-body[data-clock-font="serif"] .clock { font-family: "Georgia", "Times New Roman", serif; font-weight: 400; letter-spacing: -.02em; }
-body[data-clock-font="mono"]  .clock { font-family: "Cascadia Code", Consolas, "SF Mono", ui-monospace, monospace; font-weight: 300; letter-spacing: -.04em; }
+body[data-clock-font="outfit"] .clock {
+  font-family: "Outfit", "Segoe UI Variable Display", "Segoe UI", sans-serif;
+  font-weight: 300;
+  letter-spacing: -.04em;
+}
+body[data-clock-font="playfair"] .clock {
+  font-family: "Playfair Display", Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  letter-spacing: -.03em;
+}
 
 /* clock colour */
 body[data-clock-color="white"] .clock {

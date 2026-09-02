@@ -121,7 +121,8 @@ function applySettings() {
 
   body.dataset.theme      = theme;
   body.dataset.scale      = settings.scale;
-  body.dataset.clockFont  = settings.clockFont;
+  body.dataset.clockFont  = ["default", "outfit", "playfair"].includes(settings.clockFont)
+                           ? settings.clockFont : "default";
   body.dataset.clockColor = settings.clockColor;
   body.dataset.grain      = settings.grain ? "on" : "off";
   body.dataset.lowperf    = settings.lowPerf ? "on" : "off";
@@ -165,7 +166,8 @@ function syncControls() {
   set("optNotes", "checked", settings.showNotes);
   set("optWeather", "checked", settings.showWeather);
   set("optUnit", "value", settings.unit);
-  set("optClockFont", "value", settings.clockFont);
+  set("optClockFont", "value", ["default", "outfit", "playfair"].includes(settings.clockFont)
+                             ? settings.clockFont : "default");
   set("optTint", "value", settings.tint);
   set("optBlur", "value", settings.blur);
   set("optGrain", "checked", settings.grain);
