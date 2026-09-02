@@ -45,9 +45,9 @@ const DEFAULTS = {
   showIsland: true, islandCycle: true,
   showClock: true, showDate: true, use24hr: false, showSeconds: true,
   showSearch: true, engine: "google",
-  showNotes: true,
+  showNotes: false,
   showWeather: true, unit: "celsius",
-  showNews: true, newsCountry: "US", newsTopic: "TOP",
+  showNews: false, newsCountry: "US", newsTopic: "TOP",
   showCalendar: false,
   showAnnounce: false, announceUrl: "",
   mode: "system",
@@ -108,6 +108,15 @@ const saveShortcuts = () => chrome.storage.local.set({ shortcuts: SHORTCUTS });
 function loadState() {
   chrome.storage.local.get(["settings", "shortcuts", "notes"], (result) => {
     if (result.settings) settings = { ...DEFAULTS, ...result.settings };
+    if (!settings.layoutPreset) {
+      settings.showNotes = false;
+      settings.showNews = false;
+      settings.showCalendar = false;
+      settings.showAnnounce = false;
+      settings.positions = {};
+      settings.layoutPreset = "clean-default";
+      saveSettings();
+    }
     if (Array.isArray(result.shortcuts)) SHORTCUTS = result.shortcuts;
     if (result.notes) { $("notesArea").value = result.notes; updateNotesCount(); }
 
@@ -159,7 +168,7 @@ function applySettings() {
   body.dataset.hideSearch = settings.showSearch ? "" : "1";
 
   body.style.setProperty("--tint", settings.tint / 100);
-  body.style.setProperty("--blur-px", `${settings.blur}px`);
+  body.style.setProperty("--bg-blur", `${settings.tint * 0.18}px`);
 
   // background
   if (settings.bgType === "solid") {
@@ -234,6 +243,7 @@ function syncControls() {
   set("optClockFont", "value", ["default", "wide", "serif", "mono", "outfit", "playfair", "sfpro"].includes(settings.clockFont)
                              ? settings.clockFont : "default");
   set("optTint", "value", settings.tint);
+  $("optTintValue").textContent = `${settings.tint}%`;
   set("optBlur", "value", settings.blur);
   set("optGrain", "checked", settings.grain);
   set("optSnap", "checked", settings.snap);
@@ -1178,7 +1188,7 @@ bindValue("optName", "userName", (v) => v, renderIsland);
 bindValue("optGreetStyle", "greetStyle", (v) => v, renderIsland);
 bindValue("optEngine", "engine");
 bindValue("optClockFont", "clockFont");
-bindValue("optTint", "tint", Number);
+bindValue("optTint", "tint", Number, (value) => { $("optTintValue").textContent = `${value}%`; });
 bindValue("optBlur", "blur", Number);
 bindValue("optSolid", "solidColor");
 bindValue("optNewsCountry", "newsCountry", (v) => v, loadNews);

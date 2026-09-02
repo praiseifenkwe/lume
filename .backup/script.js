@@ -169,6 +169,7 @@ function syncControls() {
   set("optClockFont", "value", ["default", "wide", "serif", "mono", "outfit", "playfair", "sfpro"].includes(settings.clockFont)
                              ? settings.clockFont : "default");
   set("optTint", "value", settings.tint);
+  $("optTintValue").textContent = `${settings.tint}%`;
   set("optBlur", "value", settings.blur);
   set("optGrain", "checked", settings.grain);
 }
@@ -546,7 +547,7 @@ bindValue("optName", "userName");
 bindValue("optGreetStyle", "greetStyle");
 bindValue("optEngine", "engine");
 bindValue("optClockFont", "clockFont");
-bindValue("optTint", "tint", Number);
+bindValue("optTint", "tint", Number, (value) => { $("optTintValue").textContent = `${value}%`; });
 bindValue("optBlur", "blur", Number);
 
 // temperature unit needs a weather refetch

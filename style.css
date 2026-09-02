@@ -73,10 +73,12 @@ body { transition: background .9s var(--ease); }
 .bg::after {
   content: "";
   position: absolute; inset: 0;
-  background: var(--base);
-  opacity: calc(var(--tint, 1) * .42);
-  mix-blend-mode: multiply;
+  background: #fff;
+  opacity: calc(var(--tint, 1) * .62);
+  backdrop-filter: blur(calc(var(--tint, 1) * 18px));
+  -webkit-backdrop-filter: blur(calc(var(--tint, 1) * 18px));
   pointer-events: none;
+  transition: opacity .4s var(--ease), backdrop-filter .4s var(--ease);
 }
 
 .orb {
@@ -245,7 +247,7 @@ body { transition: background .9s var(--ease); }
 .clock {
   display: flex; align-items: flex-start; justify-content: center;
   font-size: clamp(76px, 10.5vw, 148px);
-  font-weight: 200;
+  font-weight: 900;
   line-height: .95;
   letter-spacing: -.05em;
   font-variant-numeric: tabular-nums;
@@ -266,7 +268,7 @@ body { transition: background .9s var(--ease); }
 .clock-colon { margin: 0 .08em; }
 .clock-colon + span { margin-left: .025em; }
 .seconds {
-  font-size: .2em; font-weight: 400;
+  font-size: .2em; font-weight: 500;
   color: var(--text-dim);
   letter-spacing: 0;
   font-variant-numeric: tabular-nums;
@@ -281,9 +283,9 @@ body { transition: background .9s var(--ease); }
 
 .date {
   margin-top: 14px;
-  font-size: 15px; font-weight: 600;
+  font-size: 15px; font-weight: 500;
   letter-spacing: .22em;
-  text-transform: uppercase;
+  text-transform: none;
   color: var(--text-dim);
   animation: riseIn 1.1s var(--ease) .1s both;
 }
@@ -346,7 +348,7 @@ body { transition: background .9s var(--ease); }
 
 .dock a {
   position: relative;
-  width: clamp(48px, 5.4vw, 60px); height: clamp(48px, 5.4vw, 60px);
+  width: clamp(42px, 4.7vw, 52px); height: clamp(42px, 4.7vw, 52px);
   border-radius: clamp(17px, 1.7vw, 21px);
   display: grid; place-items: center;
   background: rgba(248,248,248,.96);
@@ -360,14 +362,14 @@ body { transition: background .9s var(--ease); }
 .dock a:hover {
   background: #fff;
   color: #252527;
-  transform: translateY(-7px) scale(1.14);
+  transform: translateY(-6px) scale(1.12);
   box-shadow: 0 14px 26px -8px rgba(0,0,0,.55);
 }
 /* macOS-style neighbour magnification */
 .dock a:hover + a,
 .dock a:has(+ a:hover) { transform: translateY(-6px) scale(1.11); }
 
-.dock a img { width: clamp(33px, 3.8vw, 42px); height: clamp(33px, 3.8vw, 42px); border-radius: clamp(7px, .7vw, 10px); }
+.dock a img { width: clamp(28px, 3.3vw, 36px); height: clamp(28px, 3.3vw, 36px); border-radius: clamp(6px, .6vw, 9px); }
 .dock a svg { width: 21px; height: 21px; }
 
 .dock a .fallback {
@@ -720,6 +722,7 @@ body { transition: background .9s var(--ease); }
 .sw-slider { display: flex; align-items: center; gap: 10px; flex: none; width: 260px; }
 .sw-slider svg { width: 15px; height: 15px; color: var(--sw-label); flex: none; }
 .sw-slider .s-min, .sw-slider .s-max { font-size: 11px; color: var(--sw-label); flex: none; }
+.sw-slider-value { min-width: 34px; font-size: 11px; color: var(--sw-label); text-align: right; flex: none; }
 .sw-slider input[type="range"] {
   appearance: none; -webkit-appearance: none;
   flex: 1; height: 4px;
@@ -952,35 +955,44 @@ body[data-scale="more"]    { --scale: .88; }
 .date   { font-size: calc(15px * var(--scale, 1)); }
 .center { width: min(calc(560px * var(--scale, 1)), 78vw); }
 .search input { font-size: calc(15.5px * var(--scale, 1)); }
-.weather-card { width: calc(232px * var(--scale, 1)); }
-.dock a { width: calc(clamp(48px, 5.4vw, 60px) * var(--scale, 1)); height: calc(clamp(48px, 5.4vw, 60px) * var(--scale, 1)); }
+.weather-card { width: calc(184px * var(--scale, 1)); }
+.dock a { width: calc(clamp(42px, 4.7vw, 52px) * var(--scale, 1)); height: calc(clamp(42px, 4.7vw, 52px) * var(--scale, 1)); }
 
 @media (max-width: 600px) {
   .dock { gap: 5px; padding: 7px 8px; }
-  .dock a { width: clamp(38px, 10vw, 50px); height: clamp(38px, 10vw, 50px); border-radius: 13px; }
-  .dock a img { width: clamp(27px, 7.5vw, 36px); height: clamp(27px, 7.5vw, 36px); border-radius: 7px; }
+  .dock a { width: clamp(35px, 9vw, 46px); height: clamp(35px, 9vw, 46px); border-radius: 12px; }
+  .dock a img { width: clamp(25px, 7vw, 33px); height: clamp(25px, 7vw, 33px); border-radius: 6px; }
   .dock-divider { height: 30px; margin: 0 1px; }
 }
 
 /* clock font */
-body[data-clock-font="wide"]  .clock { letter-spacing: .04em; font-weight: 250; }
-body[data-clock-font="serif"] .clock { font-family: "Georgia", "Times New Roman", serif; font-weight: 400; letter-spacing: -.02em; }
-body[data-clock-font="mono"]  .clock { font-family: "Cascadia Code", Consolas, "SF Mono", ui-monospace, monospace; font-weight: 300; letter-spacing: -.04em; }
-body[data-clock-font="outfit"] .clock {
+body[data-clock-font="wide"]  .clock { letter-spacing: .04em; font-weight: 900; }
+body[data-clock-font="serif"] .clock, body[data-clock-font="serif"] .date { font-family: "Georgia", "Times New Roman", serif; }
+body[data-clock-font="serif"] .clock { font-weight: 900; }
+body[data-clock-font="serif"] .date { font-weight: 500; }
+body[data-clock-font="serif"] .clock { letter-spacing: -.02em; }
+body[data-clock-font="mono"]  .clock, body[data-clock-font="mono"] .date { font-family: "Cascadia Code", Consolas, "SF Mono", ui-monospace, monospace; }
+body[data-clock-font="mono"] .clock { font-weight: 900; }
+body[data-clock-font="mono"] .date { font-weight: 500; }
+body[data-clock-font="mono"] .clock { letter-spacing: -.04em; }
+body[data-clock-font="outfit"] .clock, body[data-clock-font="outfit"] .date {
   font-family: "Outfit", "Segoe UI Variable Display", "Segoe UI", sans-serif;
-  font-weight: 300;
-  letter-spacing: -.04em;
 }
-body[data-clock-font="playfair"] .clock {
+body[data-clock-font="outfit"] .clock { font-weight: 900; }
+body[data-clock-font="outfit"] .date { font-weight: 500; }
+body[data-clock-font="outfit"] .clock { letter-spacing: -.04em; }
+body[data-clock-font="playfair"] .clock, body[data-clock-font="playfair"] .date {
   font-family: "Playfair Display", Georgia, "Times New Roman", serif;
-  font-weight: 400;
-  letter-spacing: -.03em;
 }
-body[data-clock-font="sfpro"] .clock {
+body[data-clock-font="playfair"] .clock { font-weight: 900; }
+body[data-clock-font="playfair"] .date { font-weight: 500; }
+body[data-clock-font="playfair"] .clock { letter-spacing: -.03em; }
+body[data-clock-font="sfpro"] .clock, body[data-clock-font="sfpro"] .date {
   font-family: "SF Pro Rounded", "SF Pro Display", "SF Pro", -apple-system, sans-serif;
-  font-weight: 600;
-  letter-spacing: -.04em;
 }
+body[data-clock-font="sfpro"] .clock { font-weight: 900; }
+body[data-clock-font="sfpro"] .date { font-weight: 500; }
+body[data-clock-font="sfpro"] .clock { letter-spacing: -.04em; }
 
 /* clock colour */
 body[data-clock-color="white"] .clock {
@@ -1022,7 +1034,7 @@ body[data-hide-search="1"] .search { display: none; }
    Responsive
    ============================================================ */
 @media (max-width: 1180px) {
-    .weather-card { width: 208px; }
+    .weather-card { width: 184px; }
 }
 @media (max-width: 940px) {
   .weather-card { display: none !important; }
@@ -1124,6 +1136,8 @@ body[data-mode="light"] .wx-loading, body[data-mode="light"] .news-empty { color
   position: absolute; inset: 0;
   background-size: cover;
   background-position: center;
+  filter: blur(var(--bg-blur, 0px));
+  scale: 1.08;
   opacity: 0;
   transition: opacity .6s var(--ease);
   pointer-events: none;
