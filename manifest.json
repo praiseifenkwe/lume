@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Liquid Tab",
+  "version": "3.0",
+  "description": "A liquid-glass new tab with a Now Island, clock, weather, news, calendar, notes and a magnifying shortcut dock.",
+  "chrome_url_overrides": {
+    "newtab": "index.html"
+  },
+  "permissions": ["storage", "geolocation", "identity"],
+  "host_permissions": [
+    "https://api.open-meteo.com/*",
+    "https://news.google.com/*",
+    "https://www.googleapis.com/*",
+    "https://raw.githubusercontent.com/*",
+    "https://gist.githubusercontent.com/*"
+  ],
+  "oauth2": {
+    "client_id": "PASTE-YOUR-CLIENT-ID-HERE.apps.googleusercontent.com",
+    "scopes": ["https://www.googleapis.com/auth/calendar.readonly"]
+  }
+}

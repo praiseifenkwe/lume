@@ -1,0 +1,606 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>New Tab</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-theme="green" data-mode="dark">
+
+  <!-- ============ Background ============ -->
+  <div class="bg" id="bg">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="orb orb-4"></div>
+    <div class="photo-layer" id="photoLayer"></div>
+    <div class="grain" id="grain"></div>
+    <div class="vignette" id="vignette"></div>
+  </div>
+  <div class="snap-grid" id="snapGrid"></div>
+
+  <!-- ============ Now Island ============ -->
+  <div class="island glass" id="island" title="Click to cycle">
+    <div class="island-inner" id="islandInner">
+      <span class="island-dot" id="islandDot"></span>
+      <span class="island-icon" id="islandIcon"></span>
+      <span class="island-text" id="islandText">Good Morning</span>
+      <span class="island-sub" id="islandSub"></span>
+    </div>
+  </div>
+
+  <!-- ============ Draggable widgets ============ -->
+
+  <div class="widget notes-card glass" id="notesCard" data-widget="notes">
+    <div class="notes-header">
+      <h2>Quick Notes</h2>
+      <button id="clearNotes" class="icon-btn" title="Clear notes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>
+        </svg>
+      </button>
+    </div>
+    <textarea id="notesArea" placeholder="Jot something down&hellip;" spellcheck="false"></textarea>
+    <div class="notes-foot">
+      <span id="notesCount">0 characters</span>
+      <span id="notesSaved" class="saved-flag">Saved</span>
+    </div>
+  </div>
+
+  <div class="widget weather-card glass" id="weatherCard" data-widget="weather">
+    <div class="weather-top">
+      <div class="weather-icon" id="weatherIcon"></div>
+      <div class="weather-temp" id="weatherTemp">--<span class="deg">&#176;</span></div>
+    </div>
+    <div class="weather-cond" id="weatherCond">Loading</div>
+    <div class="weather-meta">
+      <span id="weatherCity">Locating&hellip;</span>
+      <span class="weather-hilo" id="weatherHilo"></span>
+    </div>
+  </div>
+
+  <div class="widget news-card glass" id="newsCard" data-widget="news">
+    <div class="card-header">
+      <h2>Headlines</h2>
+      <button id="refreshNews" class="icon-btn" title="Refresh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/>
+        </svg>
+      </button>
+    </div>
+    <div class="news-list" id="newsList"><div class="wx-loading">Loading headlines&hellip;</div></div>
+  </div>
+
+  <div class="widget cal-card glass" id="calCard" data-widget="calendar">
+    <div class="card-header">
+      <h2>Today</h2>
+      <button id="refreshCal" class="icon-btn" title="Refresh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/>
+        </svg>
+      </button>
+    </div>
+    <div class="cal-list" id="calList"></div>
+  </div>
+
+  <div class="widget announce-card glass" id="announceCard" data-widget="announce">
+    <span class="announce-badge" id="announceBadge">News</span>
+    <div class="announce-body">
+      <b id="announceTitle">&nbsp;</b>
+      <span id="announceText"></span>
+    </div>
+    <button class="icon-btn" id="announceNext" title="Next">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+    </button>
+  </div>
+
+  <!-- ============ Centre ============ -->
+  <div class="center">
+    <div class="clock" id="clock">
+      <span id="clockMain">00:00</span><span class="clock-sup">
+        <span class="seconds" id="clockSec">00</span>
+        <span class="meridiem" id="clockMeridiem"></span>
+      </span>
+    </div>
+    <div class="date" id="date">Loading&hellip;</div>
+
+    <form class="search glass" id="searchForm">
+      <span class="g-icon" id="engineIcon" aria-hidden="true"></span>
+      <input type="text" id="searchInput" placeholder="Search the web" autocomplete="off" spellcheck="false" />
+      <kbd class="search-kbd" id="searchKbd">/</kbd>
+    </form>
+  </div>
+
+  <!-- ============ Dock ============ -->
+  <div class="dock-wrap">
+    <div class="dock glass" id="dock">
+      <span class="dock-divider"></span>
+      <a id="settingsBtn" data-label="Settings" class="dock-sys">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3.2"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+
+  <button class="notif-btn glass" id="notifBtn" title="Notifications">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+    </svg>
+    <span class="notif-dot"></span>
+  </button>
+
+  <!-- ============================================================
+       Settings window
+       ============================================================ -->
+  <div class="settings-overlay" id="settingsOverlay">
+    <div class="sw" id="settingsWindow">
+
+      <div class="sw-traffic">
+        <button class="tl tl-close" id="tlClose" title="Close"></button>
+        <button class="tl tl-min" id="tlMin" title="Hide sidebar"></button>
+      </div>
+
+      <!-- ---------- Sidebar ---------- -->
+      <aside class="sw-sidebar" id="swSidebar">
+        <div class="sw-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+          </svg>
+          <input type="text" id="settingsSearch" placeholder="Search" autocomplete="off" spellcheck="false" />
+        </div>
+
+        <button class="sw-profile" id="swProfile">
+          <span class="sw-avatar" id="swAvatar">?</span>
+          <span class="sw-profile-name" id="swProfileName">Set your name</span>
+        </button>
+
+        <nav class="sw-nav" id="swNav">
+          <button class="sw-nav-item active" data-pane="general">
+            <span class="ni" style="--ni-a:#8e8e93;--ni-b:#5a5a5f">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </span>
+            <span>General</span>
+          </button>
+
+          <button class="sw-nav-item" data-pane="widgets">
+            <span class="ni" style="--ni-a:#4a4a4f;--ni-b:#1c1c1e">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18"/></svg>
+            </span>
+            <span>Widgets &amp; Dock</span>
+          </button>
+
+          <button class="sw-nav-item" data-pane="feeds">
+            <span class="ni" style="--ni-a:#ff9f5a;--ni-b:#f0603f">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1.6" fill="#fff" stroke="none"/></svg>
+            </span>
+            <span>Feeds</span>
+          </button>
+
+          <button class="sw-nav-item" data-pane="display">
+            <span class="ni" style="--ni-a:#5ac8fa;--ni-b:#0a84ff">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            </span>
+            <span>Display</span>
+          </button>
+
+          <button class="sw-nav-item" data-pane="appearance">
+            <span class="ni" style="--ni-a:#64d2ff;--ni-b:#32ade6">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m4 17 5-4.5 4 3.5 3-2.5 4 3.5"/></svg>
+            </span>
+            <span>Appearance</span>
+          </button>
+
+          <div class="sw-nav-sep"></div>
+
+          <button class="sw-nav-item" data-pane="about">
+            <span class="ni" style="--ni-a:#ffd60a;--ni-b:#ff9f0a">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6v.4"/></svg>
+            </span>
+            <span>About</span>
+          </button>
+        </nav>
+      </aside>
+
+      <!-- ---------- Content ---------- -->
+      <main class="sw-content" id="swContent">
+
+        <!-- ============ General ============ -->
+        <section class="sw-pane active" data-pane="general">
+          <header class="sw-title">
+            <span class="ni lg" style="--ni-a:#8e8e93;--ni-b:#5a5a5f">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </span>
+            <h1>General</h1>
+          </header>
+
+          <h3 class="sw-label">Profile</h3>
+          <div class="sw-card">
+            <div class="sw-row">
+              <span class="sw-row-label">Your Name<em>Used in the greeting on your new tab.</em></span>
+              <input type="text" class="sw-input" id="optName" placeholder="e.g. Praise" maxlength="24" />
+            </div>
+            <div class="sw-row">
+              <span class="sw-row-label">Greeting Style</span>
+              <select class="sw-select" id="optGreetStyle">
+                <option value="timeofday">Time of Day</option>
+                <option value="hello">Hello</option>
+                <option value="welcome">Welcome Back</option>
+                <option value="hey">Hey</option>
+              </select>
+            </div>
+          </div>
+
+          <h3 class="sw-label">Now Island</h3>
+          <div class="sw-card">
+            <div class="sw-row">
+              <span class="sw-row-label">Show Now Island<em>The pill at the top of the page.</em></span>
+              <input type="checkbox" class="sw-toggle" id="optIsland" />
+            </div>
+            <div class="sw-row">
+              <span class="sw-row-label">Auto-Cycle<em>Rotate through greeting, weather, next event and date.</em></span>
+              <input type="checkbox" class="sw-toggle" id="optIslandCycle" />
+            </div>
+          </div>
+
+          <h3 class="sw-label">Clock</h3>
+          <div class="sw-card">
+            <div class="sw-row"><span class="sw-row-label">Show Clock</span><input type="checkbox" class="sw-toggle" id="optClock" /></div>
+            <div class="sw-row"><span class="sw-row-label">24-Hour Time</span><input type="checkbox" class="sw-toggle" id="opt24hr" /></div>
+            <div class="sw-row"><span class="sw-row-label">Show Seconds</span><input type="checkbox" class="sw-toggle" id="optSeconds" /></div>
+            <div class="sw-row"><span class="sw-row-label">Show Date</span><input type="checkbox" class="sw-toggle" id="optDate" /></div>
+          </div>
+
+          <h3 class="sw-label">Advanced</h3>
+          <div class="sw-card">
+            <div class="sw-row">
+              <span class="sw-row-label"><span class="lbl">Low Performance Mode <b class="badge">BETA</b></span><em>Stops background motion and reduces blur.</em></span>
+              <input type="checkbox" class="sw-toggle" id="optLowPerf" />
+            </div>
+          </div>
+
+          <h3 class="sw-label danger">Reset</h3>
+          <div class="sw-card">
+            <div class="sw-row">
+              <span class="sw-row-label">Reset All Settings<em>Restores every option, theme and shortcut to default.</em></span>
+              <button class="sw-btn red" id="resetAll">Reset</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ Widgets & Dock ============ -->
+        <section class="sw-pane" data-pane="widgets">
+          <header class="sw-title">
+            <span class="ni lg" style="--ni-a:#4a4a4f;--ni-b:#1c1c1e">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18"/></svg>
+            </span>
+            <h1>Widgets &amp; Dock</h1>
+          </header>
+
+          <div class="sw-segment" id="wdSegment">
+            <button class="active" data-tab="w">Widgets</button>
+            <button data-tab="d">Dock</button>
+          </div>
+
+          <div class="sw-tab active" data-tab="w">
+            <h3 class="sw-label">Layout</h3>
+            <div class="sw-card">
+              <div class="sw-row">
+                <span class="sw-row-label">Grid Snapping<em>Drag a widget by its header or background &mdash; it snaps to a 20px grid.</em></span>
+                <input type="checkbox" class="sw-toggle" id="optSnap" />
+              </div>
+              <div class="sw-row">
+                <span class="sw-row-label">Reset Widget Positions<em>Restore widgets to their original places.</em></span>
+                <button class="sw-btn grey" id="resetPositions">Reset</button>
+              </div>
+            </div>
+
+            <h3 class="sw-label">Visible Widgets</h3>
+            <div class="sw-card">
+              <div class="sw-row"><span class="sw-row-label">Search</span><input type="checkbox" class="sw-toggle" id="optSearch" /></div>
+              <div class="sw-row"><span class="sw-row-label">Quick Notes</span><input type="checkbox" class="sw-toggle" id="optNotes" /></div>
+              <div class="sw-row"><span class="sw-row-label">Weather</span><input type="checkbox" class="sw-toggle" id="optWeather" /></div>
+              <div class="sw-row"><span class="sw-row-label">Headlines</span><input type="checkbox" class="sw-toggle" id="optNews" /></div>
+              <div class="sw-row"><span class="sw-row-label">Calendar</span><input type="checkbox" class="sw-toggle" id="optCalendar" /></div>
+              <div class="sw-row"><span class="sw-row-label">Announcements</span><input type="checkbox" class="sw-toggle" id="optAnnounce" /></div>
+            </div>
+
+            <h3 class="sw-label">Search</h3>
+            <div class="sw-card">
+              <div class="sw-row">
+                <span class="sw-row-label">Search Engine</span>
+                <select class="sw-select" id="optEngine">
+                  <option value="google">Google</option>
+                  <option value="duckduckgo">DuckDuckGo</option>
+                  <option value="bing">Bing</option>
+                  <option value="ecosia">Ecosia</option>
+                </select>
+              </div>
+            </div>
+
+            <h3 class="sw-label">Weather</h3>
+            <div class="sw-card">
+              <div class="sw-row">
+                <span class="sw-row-label">Temperature Unit</span>
+                <select class="sw-select" id="optUnit">
+                  <option value="celsius">Celsius</option>
+                  <option value="fahrenheit">Fahrenheit</option>
+                </select>
+              </div>
+              <div class="sw-note">Weather data provided by <b>Open-Meteo</b></div>
+            </div>
+
+            <h3 class="sw-label danger">Danger Zone</h3>
+            <div class="sw-card">
+              <div class="sw-row">
+                <span class="sw-row-label">Reset Widget Settings<em>Show every widget again with default options.</em></span>
+                <button class="sw-btn red" id="resetWidgets">Reset</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="sw-tab" data-tab="d">
+            <div class="sw-card tight" id="shortcutList"></div>
+            <button class="sw-btn blue wide" id="addShortcutBtn">+ Add Item</button>
+
+            <h3 class="sw-label">Maintenance</h3>
+            <div class="sw-card">
+              <div class="sw-row">
+                <span class="sw-row-label">Reset Dock Settings<em>Restores the five default shortcuts.</em></span>
+                <button class="sw-btn red" id="resetDock">Reset</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ Feeds ============ -->
+        <section class="sw-pane" data-pane="feeds">
+          <header class="sw-title">
+            <span class="ni lg" style="--ni-a:#ff9f5a;--ni-b:#f0603f">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1.6" fill="#fff" stroke="none"/></svg>
+            </span>
+            <h1>Feeds</h1>
+          </header>
+
+          <h3 class="sw-label">News</h3>
+          <div class="sw-card">
+            <div class="sw-row"><span class="sw-row-label">Show Headlines Widget</span><input type="checkbox" class="sw-toggle" id="optNews2" /></div>
+            <div class="sw-row">
+              <span class="sw-row-label">Country</span>
+              <select class="sw-select" id="optNewsCountry"></select>
+            </div>
+            <div class="sw-row">
+              <span class="sw-row-label">Interests</span>
+              <select class="sw-select" id="optNewsTopic"></select>
+            </div>
+            <div class="sw-note">Headlines from <b>Google News</b> RSS. No account or API key needed.</div>
+          </div>
+
+          <h3 class="sw-label">Google Calendar</h3>
+          <div class="sw-card">
+            <div class="sw-row"><span class="sw-row-label">Show Calendar Widget</span><input type="checkbox" class="sw-toggle" id="optCalendar2" /></div>
+            <div class="sw-row">
+              <span class="sw-row-label">Google Account<em id="calStatus">Not connected.</em></span>
+              <span class="sw-btn-group">
+                <button class="sw-btn blue" id="calConnect">Connect</button>
+                <button class="sw-btn grey" id="calDisconnect" hidden>Disconnect</button>
+              </span>
+            </div>
+            <div class="sw-note" id="calSetupNote"></div>
+          </div>
+
+          <h3 class="sw-label">Announcements</h3>
+          <div class="sw-card">
+            <div class="sw-row"><span class="sw-row-label">Show Announcements</span><input type="checkbox" class="sw-toggle" id="optAnnounce2" /></div>
+            <div class="sw-row">
+              <span class="sw-row-label">Feed URL<em>A raw GitHub or Gist JSON file.</em></span>
+              <input type="text" class="sw-input" id="optAnnounceUrl" placeholder="https://raw.githubusercontent.com/&hellip;" />
+            </div>
+            <div class="sw-note">Expects <b>[{ "title": "&hellip;", "text": "&hellip;", "url": "&hellip;" }]</b>. Only <b>raw.githubusercontent.com</b> and <b>gist.githubusercontent.com</b> are permitted.</div>
+          </div>
+        </section>
+
+        <!-- ============ Display ============ -->
+        <section class="sw-pane" data-pane="display">
+          <header class="sw-title">
+            <span class="ni lg" style="--ni-a:#5ac8fa;--ni-b:#0a84ff">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            </span>
+            <h1>Display</h1>
+          </header>
+
+          <h3 class="sw-label">Interface Size</h3>
+          <div class="sw-card pad">
+            <div class="sw-tiles" id="scaleTiles">
+              <button class="sw-tile" data-scale="larger"><span class="prev p-lg"><i></i><i></i><i></i></span><span class="cap">Larger Text</span></button>
+              <button class="sw-tile" data-scale="medium"><span class="prev p-md"><i></i><i></i><i></i><i></i></span><span class="cap">Medium Text</span></button>
+              <button class="sw-tile active" data-scale="default"><span class="prev p-df"><i></i><i></i><i></i><i></i><i></i></span><span class="cap">Default</span></button>
+              <button class="sw-tile" data-scale="more"><span class="prev p-sm"><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="cap">More Space</span></button>
+            </div>
+          </div>
+
+          <h3 class="sw-label">Clock</h3>
+          <div class="sw-card">
+            <div class="sw-row">
+              <span class="sw-row-label">Clock Font</span>
+              <select class="sw-select" id="optClockFont">
+                <option value="default">Default</option>
+                <option value="wide">Wide</option>
+                <option value="serif">Serif</option>
+                <option value="mono">Mono</option>
+              </select>
+            </div>
+            <div class="sw-row">
+              <span class="sw-row-label">Clock Color</span>
+              <span class="sw-dots" id="clockColors">
+                <button class="dot active" data-cc="gradient" title="Gradient" style="background:linear-gradient(160deg,#fff,#ffffff66)"></button>
+                <button class="dot" data-cc="white" title="Solid White" style="background:#fff"></button>
+                <button class="dot" data-cc="dim" title="Dimmed" style="background:#48484a"></button>
+                <button class="dot cc-accent" data-cc="accent" title="Theme Accent"></button>
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ Appearance ============ -->
+        <section class="sw-pane" data-pane="appearance">
+          <header class="sw-title">
+            <span class="ni lg" style="--ni-a:#64d2ff;--ni-b:#32ade6">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m4 17 5-4.5 4 3.5 3-2.5 4 3.5"/></svg>
+            </span>
+            <h1>Appearance</h1>
+          </header>
+
+          <h3 class="sw-label">Screen Mode</h3>
+          <div class="sw-card pad">
+            <div class="sw-tiles mode" id="modeTiles">
+              <button class="sw-tile" data-mode="system"><span class="prev mode-sys"></span><span class="cap">System</span></button>
+              <button class="sw-tile" data-mode="light"><span class="prev mode-light"></span><span class="cap">Light</span></button>
+              <button class="sw-tile" data-mode="dark"><span class="prev mode-dark"></span><span class="cap">Dark</span></button>
+            </div>
+          </div>
+
+          <h3 class="sw-label">Background</h3>
+          <div class="sw-card pad">
+            <div class="sw-hero">
+              <div class="sw-hero-prev" id="themePreview"></div>
+              <div class="sw-hero-meta">
+                <b id="themeName">Verdant</b>
+                <span id="themeKind">Gradient</span>
+              </div>
+            </div>
+            <div class="sw-hero-sep"></div>
+
+            <div class="sw-segment small" id="bgSegment">
+              <button class="active" data-bgtype="gradient">Gradient</button>
+              <button data-bgtype="solid">Solid</button>
+              <button data-bgtype="photo">Photo</button>
+            </div>
+
+            <div class="bg-tab active" data-bgtype="gradient">
+              <div class="sw-row">
+                <span class="sw-row-label">Theme</span>
+                <span class="sw-dots" id="bgSwatches">
+                  <button class="dot" data-bg="green"  title="Verdant"  style="background:linear-gradient(140deg,#8ef0b8,#178a63 55%,#0b4436)"></button>
+                  <button class="dot" data-bg="blue"   title="Deep Sea" style="background:linear-gradient(140deg,#8ed0f0,#1f6fb0 55%,#0c2c52)"></button>
+                  <button class="dot" data-bg="purple" title="Nebula"   style="background:linear-gradient(140deg,#d0a5f5,#7b3fd4 55%,#33125e)"></button>
+                  <button class="dot" data-bg="sunset" title="Ember"    style="background:linear-gradient(140deg,#ffc074,#e2603f 55%,#7d1f45)"></button>
+                  <button class="dot" data-bg="rose"   title="Blossom"  style="background:linear-gradient(140deg,#ffb3cd,#e0537f 55%,#5e1440)"></button>
+                  <button class="dot" data-bg="mono"   title="Graphite" style="background:linear-gradient(140deg,#9aa4ad,#3d464e 55%,#12161a)"></button>
+                  <button class="dot" data-bg="dark"   title="Midnight" style="background:linear-gradient(140deg,#2c3550,#141a2b 55%,#05070d)"></button>
+                </span>
+              </div>
+            </div>
+
+            <div class="bg-tab" data-bgtype="solid">
+              <div class="sw-row">
+                <span class="sw-row-label">Colour</span>
+                <span class="sw-colour">
+                  <input type="color" id="optSolid" />
+                  <span id="optSolidHex">#101418</span>
+                </span>
+              </div>
+            </div>
+
+            <div class="bg-tab" data-bgtype="photo">
+              <div class="photo-grid" id="photoGrid"></div>
+              <button class="sw-btn blue wide" id="addPhotoBtn">+ Add Photo</button>
+              <input type="file" id="photoInput" accept="image/*" hidden multiple />
+              <div class="sw-note">Photos are stored in this browser only and never uploaded.</div>
+            </div>
+          </div>
+
+          <h3 class="sw-label">Effects</h3>
+          <div class="sw-card">
+            <div class="sw-row">
+              <span class="sw-row-label">Background Tint</span>
+              <span class="sw-slider">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="6" width="16" height="12" rx="2"/></svg>
+                <input type="range" id="optTint" min="0" max="100" step="1" />
+                <svg viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="6" width="16" height="12" rx="2"/></svg>
+              </span>
+            </div>
+            <div class="sw-row">
+              <span class="sw-row-label">Glass Blur</span>
+              <span class="sw-slider">
+                <span class="s-min">0</span>
+                <input type="range" id="optBlur" min="0" max="60" step="1" />
+                <span class="s-max">60</span>
+              </span>
+            </div>
+            <div class="sw-row"><span class="sw-row-label">Film Grain</span><input type="checkbox" class="sw-toggle" id="optGrain" /></div>
+          </div>
+        </section>
+
+        <!-- ============ About ============ -->
+        <section class="sw-pane" data-pane="about">
+          <header class="sw-title">
+            <span class="ni lg" style="--ni-a:#ffd60a;--ni-b:#ff9f0a">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6v.4"/></svg>
+            </span>
+            <h1>About</h1>
+          </header>
+
+          <div class="sw-card">
+            <div class="sw-row"><span class="sw-row-label">Liquid Tab</span><span class="sw-value" id="aboutVersion">3.0</span></div>
+            <div class="sw-row"><span class="sw-row-label">Photos Stored</span><span class="sw-value" id="aboutPhotos">0</span></div>
+            <div class="sw-row"><span class="sw-row-label">Notes Length</span><span class="sw-value" id="aboutNotes">0 characters</span></div>
+          </div>
+
+          <h3 class="sw-label">Data Sources</h3>
+          <div class="sw-card">
+            <a class="sw-row link" href="https://open-meteo.com" target="_blank" rel="noopener">
+              <span class="sw-row-label">Open-Meteo<em>Weather forecasts</em></span>
+              <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></span>
+            </a>
+            <a class="sw-row link" href="https://news.google.com" target="_blank" rel="noopener">
+              <span class="sw-row-label">Google News<em>Headline feed</em></span>
+              <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></span>
+            </a>
+            <a class="sw-row link" href="https://calendar.google.com" target="_blank" rel="noopener">
+              <span class="sw-row-label">Google Calendar<em>Today's events</em></span>
+              <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></span>
+            </a>
+          </div>
+
+          <h3 class="sw-label">Backup</h3>
+          <div class="sw-card">
+            <div class="sw-row">
+              <span class="sw-row-label">Export Settings<em>Save your setup as a JSON file to share.</em></span>
+              <button class="sw-btn grey" id="exportBtn">Export</button>
+            </div>
+            <div class="sw-row">
+              <span class="sw-row-label">Import Settings<em>Load a setup exported from Liquid Tab.</em></span>
+              <span class="sw-btn-group">
+                <button class="sw-btn blue" id="importBtn">Import</button>
+                <input type="file" id="importInput" accept="application/json" hidden />
+              </span>
+            </div>
+          </div>
+
+          <h3 class="sw-label">Keyboard Shortcuts</h3>
+          <div class="sw-card">
+            <div class="sw-row"><span class="sw-row-label">Focus search</span><span class="sw-value"><kbd>/</kbd></span></div>
+            <div class="sw-row"><span class="sw-row-label">Open settings</span><span class="sw-value"><kbd>Ctrl</kbd><kbd>,</kbd></span></div>
+            <div class="sw-row"><span class="sw-row-label">Cycle Now Island</span><span class="sw-value"><kbd>N</kbd></span></div>
+            <div class="sw-row"><span class="sw-row-label">Close settings</span><span class="sw-value"><kbd>Esc</kbd></span></div>
+          </div>
+
+          <div class="sw-note center">Your notes, photos, shortcuts and settings never leave this browser.</div>
+        </section>
+
+        <!-- ============ Search results ============ -->
+        <section class="sw-pane" data-pane="results">
+          <header class="sw-title"><h1 id="resultsTitle">Results</h1></header>
+          <div id="resultsList"></div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
