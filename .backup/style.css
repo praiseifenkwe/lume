@@ -70,6 +70,14 @@ body { transition: background .9s var(--ease); }
    Background
    ============================================================ */
 .bg { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: var(--base); }
+.bg::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: var(--base);
+  opacity: calc(var(--tint, 1) * .42);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
 
 .orb {
   position: absolute;
@@ -1120,7 +1128,7 @@ body[data-clock-color="accent"] .clock {
 }
 
 /* background tint */
-.vignette { opacity: var(--tint, 1); transition: opacity .4s var(--ease); }
+.vignette { opacity: .78; transition: opacity .4s var(--ease); }
 
 /* film grain toggle */
 body[data-grain="off"] .grain { display: none; }
