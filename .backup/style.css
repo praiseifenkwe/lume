@@ -204,8 +204,8 @@ body { transition: background .9s var(--ease); }
 .weather-card {
   position: fixed;
   top: 28px; right: 28px;
-  width: 232px;
-  padding: 20px 22px;
+  width: 184px;
+  padding: 18px 20px;
   animation: slideLeft 1s var(--ease) .12s both;
 }
 
@@ -320,7 +320,7 @@ body { transition: background .9s var(--ease); }
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
-  width: min(560px, 78vw);
+  width: min(680px, 78vw);
 }
 
 .clock {
@@ -372,8 +372,8 @@ body { transition: background .9s var(--ease); }
 .search {
   display: flex; align-items: center; gap: 13px;
   width: 100%;
-  margin: 40px auto 0;
-  padding: 15px 18px 15px 20px;
+  margin: 48px auto 0;
+  padding: 17px 22px;
   border-radius: 100px;
   --glass-radius: 100px;
   transition: box-shadow .4s var(--ease), transform .4s var(--ease);
@@ -395,7 +395,7 @@ body { transition: background .9s var(--ease); }
   background: transparent; border: none; outline: none;
   color: #fff;
   font-family: var(--font);
-  font-size: 15.5px; font-weight: 500;
+  font-size: 17px; font-weight: 500;
   letter-spacing: -.1px;
 }
 .search input::placeholder { color: rgba(255,255,255,.55); }
@@ -405,7 +405,7 @@ body { transition: background .9s var(--ease); }
    ============================================================ */
 .dock-wrap {
   position: fixed;
-  bottom: 26px; left: 50%;
+  bottom: 42px; left: 50%;
   transform: translateX(-50%);
   animation: riseInCentered 1.1s var(--ease) .3s both;
 }
