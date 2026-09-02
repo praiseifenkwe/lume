@@ -208,7 +208,8 @@ function updateClock() {
     h = h % 12 || 12;
   }
 
-  $("clockMain").textContent = `${String(h).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  $("clockHour").textContent = String(h).padStart(2, "0");
+  $("clockMinute").textContent = String(now.getMinutes()).padStart(2, "0");
   $("clockSec").textContent = settings.showSeconds ? String(now.getSeconds()).padStart(2, "0") : "";
   $("clockMeridiem").textContent = meridiem;
 

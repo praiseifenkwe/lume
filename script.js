@@ -292,7 +292,8 @@ function updateClock() {
     meridiem = h >= 12 ? "PM" : "AM";
     h = h % 12 || 12;
   }
-  $("clockMain").textContent = `${String(h).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  $("clockHour").textContent = String(h).padStart(2, "0");
+  $("clockMinute").textContent = String(now.getMinutes()).padStart(2, "0");
   $("clockSec").textContent = settings.showSeconds ? String(now.getSeconds()).padStart(2, "0") : "";
   $("clockMeridiem").textContent = meridiem;
   $("date").textContent = now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
@@ -307,31 +308,10 @@ const ISLAND_ICONS = {
   clock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></svg>`,
 };
 
-let islandSlide = 0;
 let islandTimer = null;
 
-/** Build the list of slides that currently have something to say. */
 function islandSlides() {
-  const out = [{ dot: true, icon: "", text: greetingText(), sub: "" }];
-
-  if (settings.showWeather && weatherState.temp !== null) {
-    out.push({
-      dot: false, icon: weatherState.icon,
-      text: `${weatherState.temp}°`,
-      sub: `${weatherState.cond}${weatherState.city ? " · " + weatherState.city : ""}`,
-    });
-  }
-
-  const next = nextEvent();
-  if (next) out.push({ dot: false, icon: ISLAND_ICONS.cal, text: next.summary, sub: next.rel });
-
-  out.push({
-    dot: false, icon: ISLAND_ICONS.clock,
-    text: new Date().toLocaleDateString(undefined, { weekday: "long" }),
-    sub: new Date().toLocaleDateString(undefined, { month: "long", day: "numeric" }),
-  });
-
-  return out;
+  return [{ text: greetingText() }];
 }
 
 function renderIsland(animate = false) {
@@ -339,14 +319,10 @@ function renderIsland(animate = false) {
   if (!settings.showIsland) return;
 
   const slides = islandSlides();
-  islandSlide = ((islandSlide % slides.length) + slides.length) % slides.length;
-  const s = slides[islandSlide];
+  const s = slides[0];
 
   const paint = () => {
-    $("islandDot").hidden = !s.dot;
-    $("islandIcon").innerHTML = s.icon || "";
     $("islandText").textContent = s.text;
-    $("islandSub").textContent = s.sub || "";
     // width has to be an explicit px value for the morph to animate
     island.style.width = `${$("islandInner").scrollWidth}px`;
   };
@@ -356,20 +332,9 @@ function renderIsland(animate = false) {
   setTimeout(() => { paint(); island.classList.remove("morphing"); }, 200);
 }
 
-function cycleIsland(step = 1) {
-  islandSlide += step;
-  renderIsland(true);
-  restartIslandTimer();
-}
-
 function restartIslandTimer() {
   clearInterval(islandTimer);
-  if (settings.islandCycle && settings.showIsland) {
-    islandTimer = setInterval(() => { islandSlide++; renderIsland(true); }, 8000);
-  }
 }
-
-$("island").addEventListener("click", () => cycleIsland(1));
 
 // ============================================================
 // Weather
@@ -1195,7 +1160,6 @@ function bindValue(id, key, transform = (v) => v, after) {
 }
 
 bindToggle("optIsland", "showIsland", restartIslandTimer);
-bindToggle("optIslandCycle", "islandCycle", restartIslandTimer);
 bindToggle("optClock", "showClock");
 bindToggle("opt24hr", "use24hr");
 bindToggle("optSeconds", "showSeconds");
@@ -1466,7 +1430,6 @@ document.addEventListener("keydown", (e) => {
     return;
   }
   if (e.key === "/") { e.preventDefault(); $("searchInput").focus(); }
-  else if (e.key.toLowerCase() === "n") cycleIsland(1);
 });
 
 // ============================================================

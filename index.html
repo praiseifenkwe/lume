@@ -20,12 +20,9 @@
   <div class="snap-grid" id="snapGrid"></div>
 
   <!-- ============ Now Island ============ -->
-  <div class="island glass" id="island" title="Click to cycle">
+  <div class="island glass" id="island">
     <div class="island-inner" id="islandInner">
-      <span class="island-dot" id="islandDot"></span>
-      <span class="island-icon" id="islandIcon"></span>
       <span class="island-text" id="islandText">Good Morning</span>
-      <span class="island-sub" id="islandSub"></span>
     </div>
   </div>
 
@@ -97,7 +94,7 @@
   <!-- ============ Centre ============ -->
   <div class="center">
     <div class="clock" id="clock">
-      <span id="clockMain">00:00</span><span class="clock-sup">
+      <span id="clockHour">00</span><span class="clock-colon">:</span><span id="clockMinute">00</span><span class="clock-sup">
         <span class="seconds" id="clockSec">00</span>
         <span class="meridiem" id="clockMeridiem"></span>
       </span>
@@ -107,7 +104,6 @@
     <form class="search glass" id="searchForm">
       <span class="g-icon" id="engineIcon" aria-hidden="true"></span>
       <input type="text" id="searchInput" placeholder="Search the web" autocomplete="off" spellcheck="false" />
-      <kbd class="search-kbd" id="searchKbd">/</kbd>
     </form>
   </div>
 
@@ -238,10 +234,6 @@
             <div class="sw-row">
               <span class="sw-row-label">Show Now Island<em>The pill at the top of the page.</em></span>
               <input type="checkbox" class="sw-toggle" id="optIsland" />
-            </div>
-            <div class="sw-row">
-              <span class="sw-row-label">Auto-Cycle<em>Rotate through greeting, weather, next event and date.</em></span>
-              <input type="checkbox" class="sw-toggle" id="optIslandCycle" />
             </div>
           </div>
 
@@ -587,7 +579,6 @@
           <div class="sw-card">
             <div class="sw-row"><span class="sw-row-label">Focus search</span><span class="sw-value"><kbd>/</kbd></span></div>
             <div class="sw-row"><span class="sw-row-label">Open settings</span><span class="sw-value"><kbd>Ctrl</kbd><kbd>,</kbd></span></div>
-            <div class="sw-row"><span class="sw-row-label">Cycle Now Island</span><span class="sw-value"><kbd>N</kbd></span></div>
             <div class="sw-row"><span class="sw-row-label">Close settings</span><span class="sw-value"><kbd>Esc</kbd></span></div>
           </div>
 
