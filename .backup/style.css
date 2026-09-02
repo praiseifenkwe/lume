@@ -422,16 +422,16 @@ body { transition: background .9s var(--ease); }
 }
 
 .dock {
-  display: flex; align-items: center; gap: 10px;
-  padding: 11px 14px;
-  border-radius: 24px;
-  --glass-radius: 24px;
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px;
+  border-radius: 30px;
+  --glass-radius: 30px;
 }
 
 .dock a {
   position: relative;
-  width: 46px; height: 46px;
-  border-radius: 14px;
+  width: 78px; height: 78px;
+  border-radius: 22px;
   display: grid; place-items: center;
   background: rgba(255,255,255,.10);
   border: 1px solid rgba(255,255,255,.14);
@@ -451,7 +451,7 @@ body { transition: background .9s var(--ease); }
 .dock a:hover + a,
 .dock a:has(+ a:hover) { transform: translateY(-6px) scale(1.11); }
 
-.dock a img { width: 24px; height: 24px; border-radius: 5px; }
+.dock a img { width: 54px; height: 54px; border-radius: 12px; }
 .dock a svg { width: 21px; height: 21px; }
 
 .dock a .fallback {
@@ -462,28 +462,39 @@ body { transition: background .9s var(--ease); }
 }
 
 /* tooltip */
+.dock a::before {
+  content: "";
+  position: absolute;
+  bottom: calc(100% + 1px); left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  border: 6px solid transparent;
+  border-top-color: rgba(10,10,12,.82);
+  opacity: 0; pointer-events: none;
+  transition: all .25s var(--ease);
+}
 .dock a::after {
   content: attr(data-label);
   position: absolute;
-  bottom: calc(100% + 14px); left: 50%;
+  bottom: calc(100% + 5px); left: 50%;
   transform: translateX(-50%) translateY(4px);
-  padding: 5px 11px;
-  border-radius: 8px;
+  padding: 7px 15px;
+  border-radius: 18px;
   background: rgba(10,10,12,.82);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255,255,255,.12);
-  font-size: 11.5px; font-weight: 600; letter-spacing: .2px;
+  font-size: 16px; font-weight: 600; letter-spacing: 0;
   color: #fff;
   white-space: nowrap;
   opacity: 0; pointer-events: none;
   transition: all .25s var(--ease);
 }
+.dock a:hover::before,
 .dock a:hover::after { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 .dock-divider {
-  width: 1px; height: 26px;
+  width: 1px; height: 48px;
   background: rgba(255,255,255,.16);
-  margin: 0 3px;
+  margin: 0 4px;
   flex: none;
 }
 .dock-sys { color: var(--text-dim); }
@@ -1071,7 +1082,7 @@ body[data-scale="more"]    { --scale: .88; }
 .search input { font-size: calc(15.5px * var(--scale, 1)); }
 .notes-card   { width: calc(316px * var(--scale, 1)); height: calc(372px * var(--scale, 1)); }
 .weather-card { width: calc(232px * var(--scale, 1)); }
-.dock a { width: calc(46px * var(--scale, 1)); height: calc(46px * var(--scale, 1)); }
+.dock a { width: calc(78px * var(--scale, 1)); height: calc(78px * var(--scale, 1)); }
 
 /* clock font */
 body[data-clock-font="wide"]  .clock { letter-spacing: .04em; font-weight: 250; }
