@@ -953,6 +953,11 @@ body[data-clock-font="playfair"] .clock {
   font-weight: 400;
   letter-spacing: -.03em;
 }
+body[data-clock-font="sfpro"] .clock {
+  font-family: "SF Pro Rounded", "SF Pro Display", "SF Pro", -apple-system, sans-serif;
+  font-weight: 600;
+  letter-spacing: -.04em;
+}
 
 /* clock colour */
 body[data-clock-color="white"] .clock {

@@ -149,7 +149,7 @@ function applySettings() {
   body.dataset.mode       = resolvedMode();
   body.dataset.bgtype     = settings.bgType;
   body.dataset.scale      = settings.scale;
-  body.dataset.clockFont  = ["default", "wide", "serif", "mono", "outfit", "playfair"].includes(settings.clockFont)
+  body.dataset.clockFont  = ["default", "wide", "serif", "mono", "outfit", "playfair", "sfpro"].includes(settings.clockFont)
                            ? settings.clockFont : "default";
   body.dataset.clockColor = settings.clockColor;
   body.dataset.grain      = settings.grain ? "on" : "off";
@@ -231,7 +231,7 @@ function syncControls() {
   set("optAnnounce", "checked", settings.showAnnounce);
   set("optAnnounce2", "checked", settings.showAnnounce);
   set("optAnnounceUrl", "value", settings.announceUrl);
-  set("optClockFont", "value", ["default", "wide", "serif", "mono", "outfit", "playfair"].includes(settings.clockFont)
+  set("optClockFont", "value", ["default", "wide", "serif", "mono", "outfit", "playfair", "sfpro"].includes(settings.clockFont)
                              ? settings.clockFont : "default");
   set("optTint", "value", settings.tint);
   set("optBlur", "value", settings.blur);
