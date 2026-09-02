@@ -53,7 +53,7 @@ const DEFAULTS = {
   mode: "system",
   bg: "green", bgType: "gradient", solidColor: "#101418", photoId: null,
   tint: 100, blur: 32, grain: true,
-  scale: "default", clockFont: "default", clockColor: "gradient",
+  scale: "default", clockFont: "default", clockColor: "auto",
   snap: true, positions: {},
   lowPerf: false,
 };

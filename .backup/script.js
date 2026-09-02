@@ -53,7 +53,7 @@ const DEFAULTS = {
   bg: "green",
   scale: "default",
   clockFont: "default",
-  clockColor: "gradient",
+  clockColor: "auto",
   tint: 100,
   blur: 32,
   grain: true,

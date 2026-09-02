@@ -420,34 +420,34 @@ body { transition: background .9s var(--ease); }
 }
 .dock:has(a:hover) {
   align-items: flex-end;
-  padding-top: clamp(29px, 3vw, 37px);
+  padding-top: clamp(21px, 2.2vw, 28px);
   background: rgba(31, 34, 35, .72);
 }
 
 .dock a {
   position: relative;
-  width: clamp(62px, 7.4vw, 82px); height: clamp(62px, 7.4vw, 82px);
+  width: clamp(48px, 5.4vw, 60px); height: clamp(48px, 5.4vw, 60px);
   border-radius: clamp(17px, 1.7vw, 21px);
   display: grid; place-items: center;
-  background: rgba(57, 60, 61, .62);
-  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(248,248,248,.96);
+  border: 1px solid rgba(255,255,255,.72);
   cursor: pointer;
-  color: var(--text-dim);
+  color: #4b4b4d;
   text-decoration: none;
   transition: transform .32s var(--bounce), background .25s var(--ease), box-shadow .3s var(--ease);
   z-index: 3;
 }
 .dock a:hover {
-  background: rgba(78, 82, 83, .82);
-  color: #fff;
-  transform: translateY(-13px) scale(1.28);
+  background: #fff;
+  color: #252527;
+  transform: translateY(-7px) scale(1.14);
   box-shadow: 0 14px 26px -8px rgba(0,0,0,.55);
 }
 /* macOS-style neighbour magnification */
 .dock a:hover + a,
 .dock a:has(+ a:hover) { transform: translateY(-6px) scale(1.11); }
 
-.dock a img { width: clamp(42px, 5vw, 58px); height: clamp(42px, 5vw, 58px); border-radius: clamp(9px, .9vw, 13px); }
+.dock a img { width: clamp(33px, 3.8vw, 42px); height: clamp(33px, 3.8vw, 42px); border-radius: clamp(7px, .7vw, 10px); }
 .dock a svg { width: 21px; height: 21px; }
 
 .dock a .fallback {
@@ -1078,12 +1078,12 @@ body[data-scale="more"]    { --scale: .88; }
 .search input { font-size: calc(15.5px * var(--scale, 1)); }
 .notes-card   { width: calc(316px * var(--scale, 1)); height: calc(372px * var(--scale, 1)); }
 .weather-card { width: calc(232px * var(--scale, 1)); }
-.dock a { width: calc(clamp(62px, 7.4vw, 82px) * var(--scale, 1)); height: calc(clamp(62px, 7.4vw, 82px) * var(--scale, 1)); }
+.dock a { width: calc(clamp(48px, 5.4vw, 60px) * var(--scale, 1)); height: calc(clamp(48px, 5.4vw, 60px) * var(--scale, 1)); }
 
 @media (max-width: 600px) {
   .dock { gap: 5px; padding: 7px 8px; }
-  .dock a { width: clamp(45px, 13vw, 64px); height: clamp(45px, 13vw, 64px); border-radius: 15px; }
-  .dock a img { width: clamp(31px, 9vw, 47px); height: clamp(31px, 9vw, 47px); border-radius: 8px; }
+  .dock a { width: clamp(38px, 10vw, 50px); height: clamp(38px, 10vw, 50px); border-radius: 13px; }
+  .dock a img { width: clamp(27px, 7.5vw, 36px); height: clamp(27px, 7.5vw, 36px); border-radius: 7px; }
   .dock-divider { height: 30px; margin: 0 1px; }
 }
 
