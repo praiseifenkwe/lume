@@ -36,30 +36,32 @@ const DEFAULT_SHORTCUTS = [
   { name: "Google", url: "https://google.com" },
   { name: "YouTube", url: "https://youtube.com" },
   { name: "Gmail", url: "https://mail.google.com" },
-  { name: "Drive", url: "https://drive.google.com" },
-  { name: "GitHub", url: "https://github.com" },
+  { name: "Google Drive", url: "https://drive.google.com" },
 ];
+
+const ALL_CATS = Object.keys(QUOTE_CATEGORIES);
 
 const DEFAULTS = {
   userName: "", greetStyle: "timeofday",
   showIsland: true, islandCycle: true,
-  showClock: true, showDate: true, use24hr: false, showSeconds: true,
+  showClock: true, showDate: true, use24hr: true, showSeconds: true,
   showSearch: true, engine: "google",
-  showNotes: false,
-  showWeather: true, unit: "celsius",
-  showNews: false, newsCountry: "US", newsTopic: "TOP",
+  showQuote: true, quoteSource: "builtin", quoteRotate: "day", quoteCats: [...ALL_CATS],
+  showWeather: true, unit: "celsius", manualLocation: null,
   showCalendar: false,
-  showAnnounce: false, announceUrl: "",
-  mode: "system",
+  mode: "dark",
   bg: "green", bgType: "gradient", solidColor: "#101418", photoId: null,
-  tint: 100, blur: 32, grain: true,
-  scale: "default", clockFont: "default", clockColor: "auto",
+  unsplashCat: "all",
+  bgRotate: "never", depth: false, parallax: true,
+  tint: 10, blur: 10, grain: true,
+  scale: "default", clockFont: "default", clockColor: "auto", clockCustomColor: "#ffffff",
   snap: true, positions: {},
   lowPerf: false,
 };
 
 let settings  = { ...DEFAULTS };
 let SHORTCUTS = DEFAULT_SHORTCUTS.map((s) => ({ ...s }));
+let MY_QUOTES = [];
 
 const THEMES = {
   green: "Verdant", blue: "Deep Sea", purple: "Nebula", sunset: "Ember",
@@ -73,23 +75,6 @@ const ENGINES = {
   ecosia:     { name: "Ecosia",     url: "https://www.ecosia.org/search?q=" },
 };
 
-const NEWS_COUNTRIES = {
-  US: ["United States", "en-US", "en"], GB: ["United Kingdom", "en-GB", "en"],
-  NG: ["Nigeria", "en-NG", "en"],       CA: ["Canada", "en-CA", "en"],
-  AU: ["Australia", "en-AU", "en"],     IN: ["India", "en-IN", "en"],
-  ZA: ["South Africa", "en-ZA", "en"],  IE: ["Ireland", "en-IE", "en"],
-  KE: ["Kenya", "en-KE", "en"],         GH: ["Ghana", "en-GH", "en"],
-  SG: ["Singapore", "en-SG", "en"],     PH: ["Philippines", "en-PH", "en"],
-  DE: ["Germany", "de", "de"],          FR: ["France", "fr", "fr"],
-  ES: ["Spain", "es", "es"],            BR: ["Brazil", "pt-BR", "pt-419"],
-  JP: ["Japan", "ja", "ja"],            IT: ["Italy", "it", "it"],
-};
-
-const NEWS_TOPICS = {
-  TOP: "Top Stories", WORLD: "World", NATION: "National", BUSINESS: "Business",
-  TECHNOLOGY: "Technology", ENTERTAINMENT: "Entertainment", SPORTS: "Sports",
-  SCIENCE: "Science", HEALTH: "Health",
-};
 
 const GOOGLE_MARK = `<svg viewBox="0 0 24 24">
   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/>
@@ -99,38 +84,59 @@ const GOOGLE_MARK = `<svg viewBox="0 0 24 24">
 </svg>`;
 const GLASS_MARK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>`;
 
+// Synchronously prime settings from localStorage cache to prevent flash
+try {
+  const cached = localStorage.getItem("liquidtab_cached_settings") || localStorage.getItem("liquidtab:settings");
+  if (cached) {
+    const s = JSON.parse(cached);
+    settings = { ...DEFAULTS, ...s };
+  }
+} catch(e) {}
+
 // ============================================================
 // Persistence
 // ============================================================
-const saveSettings  = () => chrome.storage.local.set({ settings });
+const saveSettings  = () => {
+  chrome.storage.local.set({ settings });
+  try { localStorage.setItem("liquidtab_cached_settings", JSON.stringify(settings)); } catch(e) {}
+};
 const saveShortcuts = () => chrome.storage.local.set({ shortcuts: SHORTCUTS });
+const saveMyQuotes  = () => chrome.storage.local.set({ myQuotes: MY_QUOTES });
 
 function loadState() {
-  chrome.storage.local.get(["settings", "shortcuts", "notes"], (result) => {
+  chrome.storage.local.get(["settings", "shortcuts", "myQuotes"], (result) => {
     if (result.settings) settings = { ...DEFAULTS, ...result.settings };
     if (!settings.layoutPreset) {
-      settings.showNotes = false;
-      settings.showNews = false;
+      settings.showQuote = true;
       settings.showCalendar = false;
-      settings.showAnnounce = false;
       settings.positions = {};
       settings.layoutPreset = "clean-default";
       saveSettings();
     }
     if (Array.isArray(result.shortcuts)) SHORTCUTS = result.shortcuts;
-    if (result.notes) { $("notesArea").value = result.notes; updateNotesCount(); }
+    if (Array.isArray(result.myQuotes)) MY_QUOTES = result.myQuotes;
+    if (!Array.isArray(settings.quoteCats) || !settings.quoteCats.length) {
+      settings.quoteCats = [...ALL_CATS];
+    } else {
+      settings.quoteCats = settings.quoteCats.filter((c) => ALL_CATS.includes(c));
+      if (!settings.quoteCats.length) settings.quoteCats = [...ALL_CATS];
+    }
 
-    buildSelects();
+    buildCategoryRows();
     syncControls();
     applySettings();
     renderShortcuts();
     renderShortcutList();
+    renderMyQuotes();
+    newQuote(false);
     layoutWidgets();
     initWeather();
-    loadNews();
     initCalendar();
-    loadAnnouncements();
     refreshPhotoGrid();
+    initWallpaper();
+    requestAnimationFrame(() => {
+      document.body.classList.remove("preload");
+    });
   });
 }
 
@@ -158,17 +164,20 @@ function applySettings() {
   body.dataset.mode       = resolvedMode();
   body.dataset.bgtype     = settings.bgType;
   body.dataset.scale      = settings.scale;
-  body.dataset.clockFont  = ["default", "wide", "serif", "mono", "outfit", "playfair", "sfpro"].includes(settings.clockFont)
+  body.dataset.clockFont  = ["default", "wide", "serif", "mono"].includes(settings.clockFont)
                            ? settings.clockFont : "default";
   body.dataset.clockColor = settings.clockColor;
+  body.style.setProperty("--clock-custom-color", settings.clockCustomColor);
   body.dataset.grain      = settings.grain ? "on" : "off";
+  body.dataset.depth      = settings.depth ? "on" : "off";
+  body.dataset.parallax   = settings.parallax && !settings.lowPerf ? "on" : "off";
   body.dataset.lowperf    = settings.lowPerf ? "on" : "off";
   body.dataset.hideClock  = settings.showClock ? "" : "1";
   body.dataset.hideDate   = settings.showDate ? "" : "1";
   body.dataset.hideSearch = settings.showSearch ? "" : "1";
 
   body.style.setProperty("--tint", settings.tint / 100);
-  body.style.setProperty("--bg-blur", `${settings.tint * 0.18}px`);
+  applyAutoClockContrast();
 
   // background
   if (settings.bgType === "solid") {
@@ -176,15 +185,13 @@ function applySettings() {
   } else {
     body.style.removeProperty("--base");
   }
-  applyPhoto();
+  applyWallpaper();
 
   // widget visibility
   const vis = {
-    notesCard: settings.showNotes,
+    quoteCard: settings.showQuote,
     weatherCard: settings.showWeather,
-    newsCard: settings.showNews,
     calCard: settings.showCalendar,
-    announceCard: settings.showAnnounce && announcements.length > 0,
     island: settings.showIsland,
   };
   Object.entries(vis).forEach(([id, on]) => {
@@ -193,14 +200,18 @@ function applySettings() {
   });
 
   $("engineIcon").innerHTML = settings.engine === "google" ? GOOGLE_MARK : GLASS_MARK;
-  $("searchInput").placeholder = `Search with ${ENGINES[settings.engine].name}`;
+  $("searchInput").placeholder = `Search ${ENGINES[settings.engine].name}`;
 
   // settings-window reflections
   $("themeName").textContent = settings.bgType === "photo" ? "Custom Photo"
                              : settings.bgType === "solid" ? settings.solidColor.toUpperCase()
+                             : settings.bgType === "unsplash" ? "Unsplash HD"
+                             : settings.bgType === "bing" ? "Bing Daily"
                              : THEMES[theme];
   $("themeKind").textContent = settings.bgType === "photo" ? "Your photo"
-                             : settings.bgType === "solid" ? "Solid colour" : "Gradient";
+                             : settings.bgType === "solid" ? "Solid colour"
+                             : settings.bgType === "unsplash" ? "Random HD"
+                             : settings.bgType === "bing" ? "Daily photo" : "Gradient";
   $("optSolidHex").textContent = settings.solidColor.toUpperCase();
 
   $$("#bgSwatches .dot").forEach((d) => d.classList.toggle("active", d.dataset.bg === theme));
@@ -211,12 +222,15 @@ function applySettings() {
   $$(".bg-tab").forEach((t) => t.classList.toggle("active", t.dataset.bgtype === settings.bgType));
 
   updateProfile();
+  updateQuoteStats();
+  updateDepthUI();
   updateClock();
   renderIsland();
 }
 
 function syncControls() {
   const set = (id, prop, val) => { const el = $(id); if (el) el[prop] = val; };
+  set("clockCustomColor", "value", settings.clockCustomColor);
   set("optName", "value", settings.userName);
   set("optGreetStyle", "value", settings.greetStyle);
   set("optIsland", "checked", settings.showIsland);
@@ -228,19 +242,19 @@ function syncControls() {
   set("optLowPerf", "checked", settings.lowPerf);
   set("optSearch", "checked", settings.showSearch);
   set("optEngine", "value", settings.engine);
-  set("optNotes", "checked", settings.showNotes);
+  set("optQuote", "checked", settings.showQuote);
+  set("optQuote2", "checked", settings.showQuote);
+  set("optQuoteRotate", "value", settings.quoteRotate);
+  set("optBgRotate", "value", settings.bgRotate);
+  set("optDepth", "checked", settings.depth);
+  set("optParallax", "checked", settings.parallax);
+  $$("#quoteCats input").forEach((cb) => { cb.checked = settings.quoteCats.includes(cb.dataset.cat); });
   set("optWeather", "checked", settings.showWeather);
   set("optUnit", "value", settings.unit);
-  set("optNews", "checked", settings.showNews);
-  set("optNews2", "checked", settings.showNews);
-  set("optNewsCountry", "value", settings.newsCountry);
-  set("optNewsTopic", "value", settings.newsTopic);
+  syncManualLocationUI();
   set("optCalendar", "checked", settings.showCalendar);
   set("optCalendar2", "checked", settings.showCalendar);
-  set("optAnnounce", "checked", settings.showAnnounce);
-  set("optAnnounce2", "checked", settings.showAnnounce);
-  set("optAnnounceUrl", "value", settings.announceUrl);
-  set("optClockFont", "value", ["default", "wide", "serif", "mono", "outfit", "playfair", "sfpro"].includes(settings.clockFont)
+  set("optClockFont", "value", ["default", "wide", "serif", "mono"].includes(settings.clockFont)
                              ? settings.clockFont : "default");
   set("optTint", "value", settings.tint);
   $("optTintValue").textContent = `${settings.tint}%`;
@@ -248,6 +262,7 @@ function syncControls() {
   set("optGrain", "checked", settings.grain);
   set("optSnap", "checked", settings.snap);
   set("optSolid", "value", settings.solidColor);
+  set("optUnsplashCat", "value", settings.unsplashCat || "all");
 }
 
 function updateProfile() {
@@ -258,18 +273,6 @@ function updateProfile() {
   $("swAvatar").textContent = name ? name[0] : "?";
 }
 
-function buildSelects() {
-  const c = $("optNewsCountry");
-  if (!c.options.length) {
-    Object.entries(NEWS_COUNTRIES).forEach(([code, [label]]) =>
-      c.append(new Option(label, code)));
-  }
-  const t = $("optNewsTopic");
-  if (!t.options.length) {
-    Object.entries(NEWS_TOPICS).forEach(([code, label]) =>
-      t.append(new Option(label, code)));
-  }
-}
 
 // ============================================================
 // Clock + greeting
@@ -297,15 +300,12 @@ function greetingText() {
 function updateClock() {
   const now = new Date();
   let h = now.getHours();
-  let meridiem = "";
   if (!settings.use24hr) {
-    meridiem = h >= 12 ? "PM" : "AM";
     h = h % 12 || 12;
   }
   $("clockHour").textContent = String(h).padStart(2, "0");
   $("clockMinute").textContent = String(now.getMinutes()).padStart(2, "0");
   $("clockSec").textContent = settings.showSeconds ? String(now.getSeconds()).padStart(2, "0") : "";
-  $("clockMeridiem").textContent = meridiem;
   $("date").textContent = now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
 }
 setInterval(updateClock, 1000);
@@ -403,13 +403,18 @@ function loadWeather(lat, lon) {
         `&forecast_days=1&timezone=auto${unit}`)
     .then((r) => r.json())
     .then((data) => {
+      $("weatherCard").classList.remove("empty");
+      $("weatherCard").dataset.clickable = "";
       const [icon, label] = WX_MAP[data.current.weather_code] || [WX.partly, "Cloudy"];
       weatherState.temp = Math.round(data.current.temperature_2m);
       weatherState.cond = label;
       weatherState.icon = icon;
-      // Open-Meteo returns the resolved IANA zone (e.g. "Africa/Lagos") — use it
-      // as a city label so we avoid calling a third-party geocoder.
-      weatherState.city = (data.timezone || "").split("/").pop().replace(/_/g, " ");
+      // A manual pick names the exact place; otherwise fall back to the IANA
+      // zone Open-Meteo resolves (e.g. "Africa/Lagos") so we avoid a second
+      // geocoder call just to label the widget.
+      weatherState.city = settings.manualLocation
+        ? settings.manualLocation.name
+        : (data.timezone || "").split("/").pop().replace(/_/g, " ");
 
       $("weatherTemp").innerHTML = `${weatherState.temp}<span class="deg">&deg;</span>`;
       $("weatherIcon").innerHTML = icon;
@@ -421,11 +426,12 @@ function loadWeather(lat, lon) {
       }
       renderIsland();
     })
-    .catch(() => failWeather("Unavailable", "Check connection"));
+    .catch(() => { $("weatherCard").dataset.clickable = ""; failWeather("Unavailable", "Check connection"); });
 }
 
 function failWeather(cond, city) {
   weatherState.temp = null;
+  $("weatherCard").classList.remove("empty");
   $("weatherTemp").innerHTML = "&mdash;";
   $("weatherCond").textContent = cond;
   $("weatherCity").textContent = city;
@@ -433,88 +439,27 @@ function failWeather(cond, city) {
   $("weatherIcon").innerHTML = WX.cloud;
 }
 
+/** No coordinates at all yet — offer the one fix that actually works: a manual location. */
+function promptForLocation() {
+  weatherState.temp = null;
+  const card = $("weatherCard");
+  card.classList.add("empty");
+  card.dataset.clickable = "1";
+  $("weatherEmptyIcon").textContent = "🌤";
+  $("weatherEmptyCta").textContent = "Set location in Settings";
+}
+
 function initWeather() {
   $("weatherIcon").innerHTML = WX.partly;
-  if (!navigator.geolocation) return failWeather("Unsupported", "No geolocation");
+  if (settings.manualLocation) {
+    return loadWeather(settings.manualLocation.lat, settings.manualLocation.lon);
+  }
+  if (!navigator.geolocation) return promptForLocation();
   navigator.geolocation.getCurrentPosition(
     (pos) => loadWeather(pos.coords.latitude, pos.coords.longitude),
-    () => failWeather("Location off", "Enable location")
+    () => promptForLocation()
   );
 }
-
-// ============================================================
-// News — Google News RSS (keyless; CORS is waived by host_permissions)
-// ============================================================
-function newsUrl() {
-  const [, hl, ceidLang] = NEWS_COUNTRIES[settings.newsCountry] || NEWS_COUNTRIES.US;
-  const gl = settings.newsCountry;
-  const tail = `hl=${hl}&gl=${gl}&ceid=${gl}:${ceidLang}`;
-  return settings.newsTopic === "TOP"
-    ? `https://news.google.com/rss?${tail}`
-    : `https://news.google.com/rss/headlines/section/topic/${settings.newsTopic}?${tail}`;
-}
-
-function relTime(date) {
-  const mins = Math.round((Date.now() - date.getTime()) / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.round(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.round(hrs / 24)}d ago`;
-}
-
-function loadNews() {
-  if (!settings.showNews) return;
-  const list = $("newsList");
-  list.innerHTML = `<div class="wx-loading">Loading headlines&hellip;</div>`;
-
-  fetch(newsUrl())
-    .then((r) => { if (!r.ok) throw new Error(r.status); return r.text(); })
-    .then((xml) => {
-      const doc = new DOMParser().parseFromString(xml, "text/xml");
-      const items = [...doc.querySelectorAll("item")].slice(0, 12);
-      if (!items.length) throw new Error("empty");
-
-      list.innerHTML = "";
-      items.forEach((item) => {
-        const rawTitle = item.querySelector("title")?.textContent || "";
-        const source   = item.querySelector("source")?.textContent || "";
-        // Google appends " - Source" to every headline; drop it when we have the source
-        const title = source && rawTitle.endsWith(` - ${source}`)
-          ? rawTitle.slice(0, -(source.length + 3))
-          : rawTitle;
-        const pub = new Date(item.querySelector("pubDate")?.textContent || Date.now());
-
-        const a = document.createElement("a");
-        a.className = "news-item";
-        a.href = item.querySelector("link")?.textContent || "#";
-        a.target = "_blank";
-        a.rel = "noopener";
-
-        const h = document.createElement("div");
-        h.className = "h";
-        h.textContent = title;
-
-        const m = document.createElement("div");
-        m.className = "m";
-        const src = document.createElement("span");
-        src.textContent = source || "Google News";
-        const dot = document.createElement("i");
-        const when = document.createElement("span");
-        when.textContent = relTime(pub);
-        m.append(src, dot, when);
-
-        a.append(h, m);
-        list.appendChild(a);
-      });
-    })
-    .catch(() => {
-      list.innerHTML = `<div class="news-empty">Couldn't load headlines.${
-        HAS_EXT ? "" : "<br>Google News blocks this outside the extension."}</div>`;
-    });
-}
-
-$("refreshNews").addEventListener("click", (e) => { e.stopPropagation(); loadNews(); });
 
 // ============================================================
 // Google Calendar
@@ -656,6 +601,10 @@ function disconnectCalendar() {
   renderIsland();
 }
 
+function syncManualLocationUI() {
+  updateLocationUI();
+}
+
 function initCalendar() {
   $("calSetupNote").innerHTML = calSetupMessage();
   setCalUI(false);
@@ -672,53 +621,6 @@ $("calDisconnect").addEventListener("click", disconnectCalendar);
 $("refreshCal").addEventListener("click", (e) => {
   e.stopPropagation();
   if (calToken) fetchCalendar(calToken).catch(() => {});
-});
-
-// ============================================================
-// Announcements
-// ============================================================
-let announcements = [];
-let announceIdx = 0;
-
-const ANNOUNCE_HOSTS = ["raw.githubusercontent.com", "gist.githubusercontent.com"];
-
-function loadAnnouncements() {
-  announcements = [];
-  const url = settings.announceUrl.trim();
-  if (!settings.showAnnounce || !url) { applyAnnounce(); return; }
-
-  let host;
-  try { host = new URL(url).hostname; } catch { applyAnnounce(); return; }
-  if (!ANNOUNCE_HOSTS.includes(host)) { applyAnnounce(); return; }
-
-  fetch(url)
-    .then((r) => r.json())
-    .then((data) => {
-      announcements = (Array.isArray(data) ? data : []).filter((a) => a && a.title);
-      announceIdx = 0;
-      applyAnnounce();
-    })
-    .catch(() => applyAnnounce());
-}
-
-function applyAnnounce() {
-  const card = $("announceCard");
-  const on = settings.showAnnounce && announcements.length > 0;
-  card.style.display = on ? "" : "none";
-  if (!on) return;
-
-  const a = announcements[announceIdx % announcements.length];
-  $("announceTitle").textContent = a.title;
-  $("announceText").textContent = a.text || "";
-  card.onclick = a.url ? () => window.open(a.url, "_blank", "noopener") : null;
-  card.style.cursor = a.url ? "pointer" : "";
-  $("announceNext").hidden = announcements.length < 2;
-}
-
-$("announceNext").addEventListener("click", (e) => {
-  e.stopPropagation();
-  announceIdx++;
-  applyAnnounce();
 });
 
 // ============================================================
@@ -756,22 +658,6 @@ const getPhoto  = (id)  => dbRun("readonly",  (s) => s.get(id));
 const allPhotos = ()    => dbRun("readonly",  (s) => s.getAll());
 const delPhoto  = (id)  => dbRun("readwrite", (s) => s.delete(id));
 
-let photoUrl = null;
-
-function applyPhoto() {
-  const layer = $("photoLayer");
-  if (settings.bgType !== "photo" || !settings.photoId) {
-    layer.style.backgroundImage = "";
-    return;
-  }
-  getPhoto(settings.photoId).then((rec) => {
-    if (!rec) return;
-    if (photoUrl) URL.revokeObjectURL(photoUrl);
-    photoUrl = URL.createObjectURL(rec.blob);
-    layer.style.backgroundImage = `url("${photoUrl}")`;
-  }).catch(() => {});
-}
-
 function refreshPhotoGrid() {
   allPhotos().then((photos) => {
     const grid = $("photoGrid");
@@ -779,18 +665,26 @@ function refreshPhotoGrid() {
     $("aboutPhotos").textContent = String(photos.length);
 
     photos.forEach((rec) => {
-      const url = URL.createObjectURL(rec.blob);
       const b = document.createElement("button");
       b.className = "photo-thumb";
-      b.style.backgroundImage = `url("${url}")`;
+      b.style.backgroundImage = `url("${trackUrl(URL.createObjectURL(rec.blob))}")`;
       b.classList.toggle("active", settings.photoId === rec.id);
+      b.title = rec.fg ? "Has a depth foreground" : "";
       b.onclick = () => {
         settings.photoId = rec.id;
         settings.bgType = "photo";
         applySettings();
         saveSettings();
+        applyWallpaper();
         refreshPhotoGrid();
       };
+
+      if (rec.fg) {
+        const dot = document.createElement("span");
+        dot.className = "photo-depth-dot";
+        dot.title = "Depth foreground attached";
+        b.appendChild(dot);
+      }
 
       const del = document.createElement("span");
       del.className = "photo-del";
@@ -805,12 +699,15 @@ function refreshPhotoGrid() {
             saveSettings();
           }
           refreshPhotoGrid();
+          applyWallpaper();
         });
       };
 
       b.appendChild(del);
       grid.appendChild(b);
     });
+
+    updateDepthUI(photos);
   }).catch(() => {});
 }
 
@@ -823,75 +720,68 @@ $("photoInput").addEventListener("change", (e) => {
   )).then(() => {
     e.target.value = "";
     refreshPhotoGrid();
+    applyWallpaper();
   }).catch(() => {});
-});
-
-// ============================================================
-// Notes
-// ============================================================
-const notesArea = $("notesArea");
-let savedTimer;
-
-function updateNotesCount() {
-  const n = notesArea.value.length;
-  const label = `${n} character${n === 1 ? "" : "s"}`;
-  $("notesCount").textContent = label;
-  $("aboutNotes").textContent = label;
-}
-
-notesArea.addEventListener("input", () => {
-  chrome.storage.local.set({ notes: notesArea.value });
-  updateNotesCount();
-  const flag = $("notesSaved");
-  flag.classList.add("show");
-  clearTimeout(savedTimer);
-  savedTimer = setTimeout(() => flag.classList.remove("show"), 1200);
-});
-
-$("clearNotes").addEventListener("click", (e) => {
-  e.stopPropagation();
-  notesArea.value = "";
-  chrome.storage.local.set({ notes: "" });
-  updateNotesCount();
-  notesArea.focus();
 });
 
 // ============================================================
 // Search
 // ============================================================
-$("searchForm").addEventListener("submit", (e) => {
-  e.preventDefault();
-  const q = $("searchInput").value.trim();
-  if (q) window.location.href = ENGINES[settings.engine].url + encodeURIComponent(q);
-});
+const searchInput = $("searchInput");
+const searchForm = $("searchForm");
+
+function updateSearchState() {
+  if (!searchInput || !searchForm) return;
+  searchForm.classList.toggle("has-value", !!searchInput.value.trim());
+}
+
+if (searchInput) {
+  searchInput.addEventListener("input", updateSearchState);
+  searchInput.addEventListener("focus", updateSearchState);
+  searchInput.addEventListener("blur", updateSearchState);
+}
+
+if (searchForm) {
+  searchForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const q = searchInput.value.trim();
+    if (q) window.location.href = ENGINES[settings.engine].url + encodeURIComponent(q);
+  });
+}
 
 // ============================================================
 // Widget dragging + grid snapping
 // ============================================================
 const GRID = 20;
-const WIDGETS = ["notes", "weather", "news", "calendar", "announce"];
+const WIDGETS = ["weather", "calendar"];
 const WIDGET_EL = {
-  notes: "notesCard", weather: "weatherCard", news: "newsCard",
-  calendar: "calCard", announce: "announceCard",
+  weather: "weatherCard",
+  calendar: "calCard",
 };
+
+function availableViewportWidth() {
+  const sidebarOpen = document.body.classList.contains("settings-open");
+  const sw = $("settingsWindow");
+  const sidebarW = sidebarOpen && sw ? sw.offsetWidth : 0;
+  return window.innerWidth - sidebarW;
+}
 
 function defaultPosition(id, el) {
   const w = el.offsetWidth || 300;
-  const vw = window.innerWidth;
+  const vw = availableViewportWidth();
   switch (id) {
-    case "notes":    return { x: 28, y: 28 };
-    case "calendar": return { x: 28, y: 28 + (($("notesCard").offsetHeight || 372) + 18) };
+    case "quote":    return { x: 28, y: 28 };
+    case "calendar": return { x: 28, y: 28 + (($("quoteCard").offsetHeight || 200) + 18) };
     case "weather":  return { x: vw - w - 28, y: 28 };
-    case "news":     return { x: vw - w - 28, y: 28 + (($("weatherCard").offsetHeight || 164) + 18) };
-    case "announce": return { x: Math.round((vw - w) / 2), y: 88 };
     default:         return { x: 28, y: 28 };
   }
 }
 
 function clampToViewport(x, y, el) {
   const w = el.offsetWidth, h = el.offsetHeight;
+  const vw = availableViewportWidth();
   return {
-    x: Math.max(8, Math.min(x, window.innerWidth - w - 8)),
+    x: Math.max(8, Math.min(x, vw - w - 8)),
     y: Math.max(8, Math.min(y, window.innerHeight - h - 8)),
   };
 }
@@ -979,6 +869,25 @@ window.addEventListener("resize", () => {
 // ============================================================
 // Dock
 // ============================================================
+const BUILTIN_ICONS = {
+  "google.com": `<svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>`,
+  "youtube.com": `<svg viewBox="0 0 24 24"><path fill="#FF0000" d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z"/><path fill="#FFFFFF" d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>`,
+  "mail.google.com": `<svg viewBox="0 0 24 24"><path fill="#4285F4" d="M1.5 6.5v11A1.5 1.5 0 0 0 3 19h2.5V9.5L1.5 6.5z"/><path fill="#34A853" d="M18.5 19H21a1.5 1.5 0 0 0 1.5-1.5v-11L18.5 9.5V19z"/><path fill="#EA4335" d="M18.5 9.5V5a1 1 0 0 0-1.5-.86L12 7.5 7 4.14A1 1 0 0 0 5.5 5v4.5l6.5 4.5 6.5-4.5z"/><path fill="#FBBC05" d="M5.5 9.5L1.5 6.5 5.5 4.14V9.5z"/><path fill="#C5221F" d="M18.5 9.5V4.14L22.5 6.5l-4 3z"/></svg>`,
+  "drive.google.com": `<svg viewBox="0 0 24 24"><path fill="#0066DA" d="M15.42 16.5H23.1L19.26 9.75H11.58L15.42 16.5Z"/><path fill="#00AC47" d="M8.58 16.5L4.74 9.75L8.58 3H16.26L12.42 9.75L8.58 16.5Z"/><path fill="#EA4335" d="M4.74 9.75L0.9 16.5H8.58L12.42 9.75H4.74Z"/><path fill="#FFBA00" d="M8.58 3L0.9 16.5L4.74 16.5L12.42 3H8.58Z"/></svg>`
+};
+
+function getBuiltinIcon(url) {
+  try {
+    const u = url.toLowerCase();
+    const host = new URL(url).hostname.replace(/^www\./, "").toLowerCase();
+    if (host === "mail.google.com" || u.includes("mail.google.com") || u.includes("gmail.com")) return BUILTIN_ICONS["mail.google.com"];
+    if (host === "drive.google.com" || u.includes("drive.google.com")) return BUILTIN_ICONS["drive.google.com"];
+    if (host === "youtube.com" || u.includes("youtube.com") || u.includes("youtu.be")) return BUILTIN_ICONS["youtube.com"];
+    if (host === "google.com" || host.endsWith(".google.com")) return BUILTIN_ICONS["google.com"];
+  } catch {}
+  return null;
+}
+
 const FALLBACK_COLORS = ["#4285F4","#EA4335","#FBBC05","#34A853","#8E44AD","#16A085","#E67E22"];
 const faviconFor = (url, size = 64) =>
   `https://www.google.com/s2/favicons?sz=${size}&domain_url=${encodeURIComponent(url)}`;
@@ -993,18 +902,23 @@ function renderShortcuts() {
     a.href = s.url;
     a.dataset.label = s.name || s.url;
 
-    const img = document.createElement("img");
-    img.src = faviconFor(s.url);
-    img.alt = s.name;
-    img.onerror = () => {
-      const fb = document.createElement("span");
-      fb.className = "fallback";
-      fb.textContent = ((s.name || "?").trim()[0] || "?").toUpperCase();
-      fb.style.background = FALLBACK_COLORS[i % FALLBACK_COLORS.length];
-      img.replaceWith(fb);
-    };
+    const builtinSvg = getBuiltinIcon(s.url);
+    if (builtinSvg) {
+      a.innerHTML = builtinSvg;
+    } else {
+      const img = document.createElement("img");
+      img.src = faviconFor(s.url);
+      img.alt = s.name;
+      img.onerror = () => {
+        const fb = document.createElement("span");
+        fb.className = "fallback";
+        fb.textContent = ((s.name || "?").trim()[0] || "?").toUpperCase();
+        fb.style.background = FALLBACK_COLORS[i % FALLBACK_COLORS.length];
+        img.replaceWith(fb);
+      };
+      a.appendChild(img);
+    }
 
-    a.appendChild(img);
     dock.insertBefore(a, divider);
   });
 }
@@ -1100,13 +1014,22 @@ $("addShortcutBtn").addEventListener("click", () => {
 // Settings window
 // ============================================================
 const overlay = $("settingsOverlay");
-const openSettings  = () => overlay.classList.add("open");
-const closeSettings = () => overlay.classList.remove("open");
+const openSettings  = () => {
+  overlay.classList.add("open");
+  document.body.classList.add("settings-open");
+  setTimeout(layoutWidgets, 10);
+};
+const closeSettings = () => {
+  overlay.classList.remove("open");
+  document.body.classList.remove("settings-open");
+  setTimeout(layoutWidgets, 10);
+};
 
 $("settingsBtn").addEventListener("click", (e) => { e.preventDefault(); openSettings(); });
 $("tlClose").addEventListener("click", closeSettings);
 $("tlMin").addEventListener("click", () => $("settingsWindow").classList.toggle("no-sidebar"));
 overlay.addEventListener("click", (e) => { if (e.target === overlay) closeSettings(); });
+window.addEventListener("keydown", (e) => { if (e.key === "Escape" && overlay.classList.contains("open")) closeSettings(); });
 
 function showPane(name) {
   $$(".sw-pane").forEach((p) => p.classList.toggle("active", p.dataset.pane === name));
@@ -1141,6 +1064,8 @@ $$("#bgSegment button").forEach((btn) => {
     settings.bgType = btn.dataset.bgtype;
     applySettings();
     saveSettings();
+    if (settings.bgType === "bing" && !bingImages.length) loadBing().then(applyWallpaper);
+    else applyWallpaper();
   });
 });
 
@@ -1162,10 +1087,11 @@ function bindValue(id, key, transform = (v) => v, after) {
   const el = $(id);
   if (!el) return;
   el.addEventListener("input", () => {
-    settings[key] = transform(el.value);
+    const val = transform(el.value);
+    settings[key] = val;
     applySettings();
     saveSettings();
-    if (after) after();
+    if (after) after(val);
   });
 }
 
@@ -1176,11 +1102,11 @@ bindToggle("optSeconds", "showSeconds");
 bindToggle("optDate", "showDate");
 bindToggle("optLowPerf", "lowPerf");
 bindToggle("optSearch", "showSearch");
-bindToggle("optNotes", "showNotes", layoutWidgets);
+bindToggle(["optQuote", "optQuote2"], "showQuote", layoutWidgets);
+bindToggle("optDepth", "depth");
+bindToggle("optParallax", "parallax");
 bindToggle("optWeather", "showWeather", layoutWidgets);
-bindToggle(["optNews", "optNews2"], "showNews", () => { layoutWidgets(); loadNews(); });
 bindToggle(["optCalendar", "optCalendar2"], "showCalendar", () => { layoutWidgets(); initCalendar(); });
-bindToggle(["optAnnounce", "optAnnounce2"], "showAnnounce", loadAnnouncements);
 bindToggle("optGrain", "grain");
 bindToggle("optSnap", "snap");
 
@@ -1191,9 +1117,6 @@ bindValue("optClockFont", "clockFont");
 bindValue("optTint", "tint", Number, (value) => { $("optTintValue").textContent = `${value}%`; });
 bindValue("optBlur", "blur", Number);
 bindValue("optSolid", "solidColor");
-bindValue("optNewsCountry", "newsCountry", (v) => v, loadNews);
-bindValue("optNewsTopic", "newsTopic", (v) => v, loadNews);
-bindValue("optAnnounceUrl", "announceUrl", (v) => v, loadAnnouncements);
 
 $("optUnit").addEventListener("input", () => {
   settings.unit = $("optUnit").value;
@@ -1207,10 +1130,17 @@ $$("#bgSwatches .dot").forEach((dot) => {
     settings.bgType = "gradient";
     applySettings();
     saveSettings();
+    applyWallpaper();
   });
 });
 $$("#clockColors .dot").forEach((dot) => {
   dot.addEventListener("click", () => { settings.clockColor = dot.dataset.cc; applySettings(); saveSettings(); });
+});
+$("clockCustomColor").addEventListener("input", () => {
+  settings.clockColor = "custom";
+  settings.clockCustomColor = $("clockCustomColor").value;
+  applySettings();
+  saveSettings();
 });
 $$("#scaleTiles .sw-tile").forEach((tile) => {
   tile.addEventListener("click", () => {
@@ -1233,7 +1163,7 @@ $("resetPositions").addEventListener("click", () => {
 
 $("resetWidgets").addEventListener("click", () => {
   ["showIsland","islandCycle","showClock","showDate","use24hr","showSeconds","showSearch",
-   "engine","showNotes","showWeather","unit","showNews","showCalendar","showAnnounce"]
+   "engine","showQuote","showWeather","unit","showCalendar"]
     .forEach((k) => { settings[k] = DEFAULTS[k]; });
   settings.positions = {};
   syncControls();
@@ -1251,7 +1181,7 @@ $("resetDock").addEventListener("click", () => {
 });
 
 $("resetAll").addEventListener("click", () => {
-  settings = { ...DEFAULTS, positions: {} };
+  settings = { ...DEFAULTS, positions: {}, quoteCats: [...ALL_CATS] };
   SHORTCUTS = DEFAULT_SHORTCUTS.map((s) => ({ ...s }));
   saveSettings();
   saveShortcuts();
@@ -1261,13 +1191,11 @@ $("resetAll").addEventListener("click", () => {
   renderShortcutList();
   layoutWidgets();
   restartIslandTimer();
-  loadNews();
-  loadAnnouncements();
 });
 
 // ---- export / import ----
 $("exportBtn").addEventListener("click", () => {
-  const payload = { app: "liquid-tab", version: 3, settings, shortcuts: SHORTCUTS, notes: notesArea.value };
+  const payload = { app: "liquid-tab", version: 4, settings, shortcuts: SHORTCUTS, myQuotes: MY_QUOTES };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -1285,21 +1213,21 @@ $("importInput").addEventListener("change", (e) => {
     if (data.app !== "liquid-tab") throw new Error("not a Liquid Tab export");
     settings = { ...DEFAULTS, ...(data.settings || {}) };
     if (Array.isArray(data.shortcuts)) SHORTCUTS = data.shortcuts;
-    if (typeof data.notes === "string") {
-      notesArea.value = data.notes;
-      chrome.storage.local.set({ notes: data.notes });
-      updateNotesCount();
+    if (Array.isArray(data.myQuotes)) MY_QUOTES = data.myQuotes;
+    if (!Array.isArray(settings.quoteCats) || !settings.quoteCats.length) {
+      settings.quoteCats = [...ALL_CATS];
     }
     saveSettings();
     saveShortcuts();
+    saveMyQuotes();
     syncControls();
     applySettings();
     renderShortcuts();
     renderShortcutList();
+    renderMyQuotes();
+    newQuote(true);
     layoutWidgets();
     restartIslandTimer();
-    loadNews();
-    loadAnnouncements();
   }).catch(() => {
     alert("That file isn't a valid Liquid Tab export.");
   }).finally(() => { e.target.value = ""; });
@@ -1309,7 +1237,7 @@ $("importInput").addEventListener("change", (e) => {
 // Settings search
 // ============================================================
 const PANE_TITLES = {
-  general: "General", widgets: "Widgets & Dock", feeds: "Feeds",
+  general: "General", widgets: "Widgets & Dock", quotes: "Quotes", feeds: "Feeds",
   display: "Display", appearance: "Appearance", about: "About",
 };
 
@@ -1390,16 +1318,6 @@ function runSearch(raw) {
 $("settingsSearch").addEventListener("input", (e) => runSearch(e.target.value));
 
 // ============================================================
-// Notification bell
-// ============================================================
-$("notifBtn").addEventListener("click", () => {
-  const btn = $("notifBtn");
-  btn.classList.remove("ring");
-  void btn.offsetWidth;
-  btn.classList.add("ring");
-});
-
-// ============================================================
 // Sheen + parallax
 // ============================================================
 $$(".glass").forEach((el) => {
@@ -1440,6 +1358,671 @@ document.addEventListener("keydown", (e) => {
     return;
   }
   if (e.key === "/") { e.preventDefault(); $("searchInput").focus(); }
+});
+
+
+// ============================================================
+// Quotes
+// ============================================================
+
+/** Stable 32-bit hash so "today's quote" is identical all day, in every tab. */
+function hashString(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return Math.abs(h);
+}
+
+/** A seed that only changes as often as the chosen rotation. */
+function rotationSeed(mode) {
+  const d = new Date();
+  const day = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+  if (mode === "day")  return day;
+  if (mode === "hour") return `${day}-${d.getHours()}`;
+  return String(Math.random());   // every new tab
+}
+
+function quotePool() {
+  const mine = MY_QUOTES
+    .filter((q) => q.text && q.text.trim())
+    .map((q) => [q.text.trim(), (q.author || "").trim(), "mine"]);
+
+  if (settings.quoteSource === "mine") return mine;
+
+  const builtin = QUOTES.filter((q) => settings.quoteCats.includes(q[2]));
+  return settings.quoteSource === "both" ? builtin.concat(mine) : builtin;
+}
+
+let quoteOffset = 0;   // bumped by the shuffle button
+
+function newQuote(animate = true) {
+  const pool = quotePool();
+  const card = $("quoteCard");
+  if (!card) return;
+
+  const paint = () => {
+    if (!pool.length) {
+      $("quoteText").textContent = settings.quoteSource === "mine"
+        ? "No quotes of your own yet — add some in Settings."
+        : "No categories selected.";
+      $("quoteAuthor").textContent = "";
+      $("quoteCat").textContent = "";
+      return;
+    }
+    const idx = (hashString(rotationSeed(settings.quoteRotate)) + quoteOffset) % pool.length;
+    const [text, author, cat] = pool[idx];
+    $("quoteText").textContent = text;
+    $("quoteAuthor").textContent = author || "Unknown";
+    $("quoteCat").textContent = cat === "mine" ? "Mine" : (QUOTE_CATEGORIES[cat] || "");
+  };
+
+  if (!animate) { paint(); return; }
+  card.classList.add("swapping");
+  setTimeout(() => { paint(); card.classList.remove("swapping"); }, 240);
+}
+
+function shuffleQuote() {
+  quoteOffset++;
+  newQuote(true);
+}
+
+function updateQuoteStats() {
+  const n = quotePool().length;
+  const pool = $("quotePoolSize");
+  if (pool) pool.textContent = `${n} quote${n === 1 ? "" : "s"}`;
+  const about = $("aboutQuotes");
+  if (about) about.textContent = `${QUOTES.length} built-in · ${MY_QUOTES.length} mine`;
+}
+
+function buildCategoryRows() {
+  const wrap = $("quoteCats");
+  if (!wrap || wrap.children.length) return;
+
+  Object.entries(QUOTE_CATEGORIES).forEach(([key, label]) => {
+    const count = QUOTES.filter((q) => q[2] === key).length;
+    const row = document.createElement("label");
+    row.className = "sw-row cat-row";
+
+    const name = document.createElement("span");
+    name.className = "sw-row-label";
+    name.textContent = label;
+
+    const right = document.createElement("span");
+    right.style.display = "flex";
+    right.style.alignItems = "center";
+
+    const cnt = document.createElement("span");
+    cnt.className = "cat-count";
+    cnt.textContent = count;
+
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.className = "sw-toggle";
+    cb.dataset.cat = key;
+    cb.addEventListener("change", () => {
+      const on = $$("#quoteCats input").filter((i) => i.checked).map((i) => i.dataset.cat);
+      if (!on.length) { cb.checked = true; return; }   // never leave the pool empty
+      settings.quoteCats = on;
+      saveSettings();
+      updateQuoteStats();
+      newQuote(true);
+    });
+
+    right.append(cnt, cb);
+    row.append(name, right);
+    wrap.appendChild(row);
+  });
+}
+
+function renderMyQuotes() {
+  const list = $("myQuoteList");
+  if (!list) return;
+  list.innerHTML = "";
+
+  if (!MY_QUOTES.length) {
+    list.innerHTML = `<div class="sw-empty quiet">Nothing here yet. Add a quote you want to see.</div>`;
+    updateQuoteStats();
+    return;
+  }
+
+  MY_QUOTES.forEach((q, i) => {
+    const row = document.createElement("div");
+    row.className = "mq-row";
+
+    const fields = document.createElement("div");
+    fields.className = "mq-fields";
+
+    const text = document.createElement("textarea");
+    text.value = q.text || "";
+    text.placeholder = "The quote itself…";
+    text.rows = 2;
+    text.addEventListener("input", () => {
+      MY_QUOTES[i].text = text.value;
+      saveMyQuotes();
+      updateQuoteStats();
+    });
+
+    const author = document.createElement("input");
+    author.type = "text";
+    author.value = q.author || "";
+    author.placeholder = "Author (optional)";
+    author.addEventListener("input", () => {
+      MY_QUOTES[i].author = author.value;
+      saveMyQuotes();
+    });
+
+    fields.append(text, author);
+
+    const del = document.createElement("button");
+    del.className = "sc-del";
+    del.innerHTML = X_SVG;
+    del.title = "Remove quote";
+    del.onclick = () => {
+      MY_QUOTES.splice(i, 1);
+      saveMyQuotes();
+      renderMyQuotes();
+      newQuote(true);
+    };
+
+    row.append(fields, del);
+    list.appendChild(row);
+  });
+
+  updateQuoteStats();
+}
+
+$("quoteShuffle").addEventListener("click", (e) => { e.stopPropagation(); shuffleQuote(); });
+
+$("addQuoteBtn").addEventListener("click", () => {
+  MY_QUOTES.push({ text: "", author: "" });
+  saveMyQuotes();
+  renderMyQuotes();
+  const ta = document.querySelector("#myQuoteList .mq-row:last-child textarea");
+  if (ta) ta.focus();
+});
+
+$$("#quoteSourceSeg button").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    settings.quoteSource = btn.dataset.src;
+    $$("#quoteSourceSeg button").forEach((b) => b.classList.toggle("active", b === btn));
+    saveSettings();
+    updateQuoteStats();
+    newQuote(true);
+  });
+});
+
+bindValue("optQuoteRotate", "quoteRotate", (v) => v, () => newQuote(true));
+
+// ============================================================
+// Wallpaper — Unsplash, Live Video, Photo library, Bing daily, rotation, depth
+// ============================================================
+let objectUrls = [];
+const trackUrl = (u) => { objectUrls.push(u); return u; };
+function revokeUrls() {
+  objectUrls.forEach((u) => URL.revokeObjectURL(u));
+  objectUrls = [];
+}
+
+const UNSPLASH_COLLECTIONS = {
+  nature: [
+    { id: "photo-1470071459604-3b5ec3a7fe05", author: "Jerry Zhang", link: "https://unsplash.com/@zlj318" },
+    { id: "photo-1506744038136-46273834b3fb", author: "Bailey Zindel", link: "https://unsplash.com/@baileyzindel" },
+    { id: "photo-1469474968028-56623f02e42e", author: "David Marcu", link: "https://unsplash.com/@davidmarcu" },
+    { id: "photo-1518495973542-4542c06a5843", author: "Luca Bravo", link: "https://unsplash.com/@lucabravo" },
+    { id: "photo-1472214103451-9374bd1c798e", author: "Sebastien Gabriel", link: "https://unsplash.com/@sebastien_gabriel" },
+    { id: "photo-1426604966848-d7adac402bff", author: "Kalen Emsley", link: "https://unsplash.com/@kalenemsley" },
+    { id: "photo-1441974231531-c6227db76b6e", author: "Sascha Bosshard", link: "https://unsplash.com/@bosshardsascha" },
+    { id: "photo-1507525428034-b723cf961d3e", author: "Sean Oulashin", link: "https://unsplash.com/@oulashin" },
+  ],
+  minimal: [
+    { id: "photo-1518709268805-4e9042af9f23", author: "Alexander Grey", link: "https://unsplash.com/@sharonmccutcheon" },
+    { id: "photo-1550684848-fac1c5b4e853", author: "Joel Filipe", link: "https://unsplash.com/@joelfilip" },
+    { id: "photo-1618005182384-a83a8bd57fbe", author: "Milad Fakurian", link: "https://unsplash.com/@fakurian" },
+    { id: "photo-1509198397868-475647b2a1e5", author: "Fakurian Design", link: "https://unsplash.com/@fakuriandesign" },
+    { id: "photo-1557683316-973673baf926", author: "Gradient Creator", link: "https://unsplash.com" },
+    { id: "photo-1579546929518-9e396f3cc809", author: "Pawel Czerwinski", link: "https://unsplash.com/@pawel_czerwinski" },
+  ],
+  architecture: [
+    { id: "photo-1486406146926-c627a92ad1ab", author: "Sean Pollock", link: "https://unsplash.com/@seanpollock" },
+    { id: "photo-1477959858617-67f30bc75b82", author: "Sawyer Bengtson", link: "https://unsplash.com/@the_real_bengtson" },
+    { id: "photo-1514565131-fce0801e5785", author: "Aleksandar Pasaric", link: "https://unsplash.com/@apasaric" },
+    { id: "photo-1449824913935-59a10b8d2000", author: "Matthew Henry", link: "https://unsplash.com/@matthewhenry" },
+    { id: "photo-1519501025264-65ba15a82390", author: "Daniel Chen", link: "https://unsplash.com/@danielchen" },
+    { id: "photo-1492691527719-9d1e07e534b4", author: "Samson", link: "https://unsplash.com/@samson" },
+  ],
+  space: [
+    { id: "photo-1506703719100-a0f3a48c0f86", author: "NASA", link: "https://unsplash.com/@nasa" },
+    { id: "photo-1451187580459-43490279c0fa", author: "NASA", link: "https://unsplash.com/@nasa" },
+    { id: "photo-1516339901601-2e1b62dc0c45", author: "Vincentiu Solomon", link: "https://unsplash.com/@vincentiu" },
+    { id: "photo-1446776811953-b23d57bd21aa", author: "NASA", link: "https://unsplash.com/@nasa" },
+    { id: "photo-1462331940025-496dfbfc7564", author: "Jeremy Thomas", link: "https://unsplash.com/@jeremythomasphoto" },
+    { id: "photo-1538370965046-79c0d6907d47", author: "Adrian Pelletier", link: "https://unsplash.com/@adrianpelletier" },
+  ],
+  cyberpunk: [
+    { id: "photo-1542751371-adc38448a05e", author: "Florian Olivo", link: "https://unsplash.com/@florianolivo" },
+    { id: "photo-1555680202-c86f0e12f086", author: "Victor Garcia", link: "https://unsplash.com/@victorgarcia" },
+    { id: "photo-1578632767115-351597cf2477", author: "Denis Cherkasov", link: "https://unsplash.com/@denischerkasov" },
+    { id: "photo-1518709268805-4e9042af9f23", author: "Alexander Grey", link: "https://unsplash.com/@sharonmccutcheon" },
+    { id: "photo-1526374965328-7f61d4dc18c5", author: "Markus Spiske", link: "https://unsplash.com/@markusspiske" },
+  ],
+};
+
+UNSPLASH_COLLECTIONS.all = [
+  ...UNSPLASH_COLLECTIONS.nature,
+  ...UNSPLASH_COLLECTIONS.minimal,
+  ...UNSPLASH_COLLECTIONS.architecture,
+  ...UNSPLASH_COLLECTIONS.space,
+  ...UNSPLASH_COLLECTIONS.cyberpunk,
+];
+
+let bingImages = [];
+let currentUnsplashOffset = 0;
+let bgRotateTimer = null;
+
+function setupBgRotateTimer() {
+  if (bgRotateTimer) {
+    clearInterval(bgRotateTimer);
+    bgRotateTimer = null;
+  }
+  let ms = 0;
+  if (settings.bgRotate === "5min") ms = 5 * 60 * 1000;
+  else if (settings.bgRotate === "15min") ms = 15 * 60 * 1000;
+  else if (settings.bgRotate === "hour") ms = 60 * 60 * 1000;
+
+  if (ms > 0) {
+    bgRotateTimer = setInterval(() => {
+      if (settings.bgType === "unsplash") {
+        applyUnsplashWallpaper(true);
+      } else {
+        applyWallpaper();
+      }
+    }, ms);
+  }
+}
+
+/** An index that only changes as often as the rotation setting. */
+function rotationIndex(count) {
+  if (count <= 0) return 0;
+  if (settings.bgRotate === "never") return 0;
+  if (settings.bgRotate === "tab" || settings.bgRotate === "5min" || settings.bgRotate === "15min") {
+    return Math.floor(Math.random() * count);
+  }
+  return hashString(rotationSeed(settings.bgRotate)) % count;
+}
+
+function setCredit(text, url) {
+  const el = $("bgCredit");
+  if (!el) return;
+  el.textContent = text || "";
+  if (url) el.href = url; else el.removeAttribute("href");
+}
+
+function applyUnsplashWallpaper(bump = false) {
+  const layer = $("photoLayer");
+  if (!layer) return;
+  const pool = UNSPLASH_COLLECTIONS[settings.unsplashCat] || UNSPLASH_COLLECTIONS.all;
+  if (!pool || !pool.length) return;
+
+  if (bump) {
+    currentUnsplashOffset = (currentUnsplashOffset + 1) % pool.length;
+  }
+  const idx = (rotationIndex(pool.length) + currentUnsplashOffset) % pool.length;
+  const item = pool[idx];
+  const url = `https://images.unsplash.com/${item.id}?auto=format&fit=crop&w=2560&q=85`;
+
+  layer.style.backgroundImage = `url("${url}")`;
+  setCredit(`Photo by ${item.author} (Unsplash)`, item.link || "https://unsplash.com");
+  applyAutoClockContrast();
+}
+
+function loadBing() {
+  const status = $("bingStatus");
+  if (status) status.textContent = "Loading…";
+  return fetch("https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=8&mkt=en-US")
+    .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then((data) => {
+      bingImages = (data.images || []).map((im) => ({
+        url: im.url.startsWith("http") ? im.url : `https://www.bing.com${im.url}`,
+        title: im.title || "",
+        credit: (im.copyright || "").replace(/\s*\(©.*?\)\s*$/, "").trim(),
+        link: im.copyrightlink || "",
+      }));
+      if (status) {
+        status.textContent = bingImages.length
+          ? `${bingImages.length} recent wallpapers available.`
+          : "Nothing returned.";
+      }
+      return bingImages;
+    })
+    .catch(() => {
+      bingImages = [];
+      if (status) {
+        status.textContent = HAS_EXT ? "Couldn't reach Bing."
+                                     : "Bing blocks this outside the extension.";
+      }
+      return [];
+    });
+}
+
+function applyWallpaper() {
+  const layer = $("photoLayer");
+  const depth = $("depthLayer");
+  if (!layer) return;
+
+  setupBgRotateTimer();
+
+  if (settings.bgType === "unsplash") {
+    if (depth) depth.style.backgroundImage = "";
+    applyUnsplashWallpaper(false);
+    return;
+  }
+
+  if (settings.bgType === "bing") {
+    if (depth) depth.style.backgroundImage = "";
+    if (!bingImages.length) { layer.style.backgroundImage = ""; setCredit(""); return; }
+    const im = bingImages[rotationIndex(bingImages.length)];
+    layer.style.backgroundImage = `url("${im.url}")`;
+    setCredit(im.credit || im.title, im.link);
+    applyAutoClockContrast();
+    return;
+  }
+
+  if (settings.bgType !== "photo") {
+    layer.style.backgroundImage = "";
+    if (depth) depth.style.backgroundImage = "";
+    setCredit("");
+    return;
+  }
+
+  setCredit("");
+  allPhotos().then((photos) => {
+    if (!photos.length) {
+      layer.style.backgroundImage = "";
+      if (depth) depth.style.backgroundImage = "";
+      return;
+    }
+    // "never" pins to the chosen photo; any rotation draws across the library
+    const rec = settings.bgRotate === "never"
+      ? (photos.find((p) => p.id === settings.photoId) || photos[0])
+      : photos[rotationIndex(photos.length)];
+
+    revokeUrls();
+    layer.style.backgroundImage = `url("${trackUrl(URL.createObjectURL(rec.blob))}")`;
+    if (depth) {
+      depth.style.backgroundImage = rec.fg
+        ? `url("${trackUrl(URL.createObjectURL(rec.fg))}")`
+        : "";
+    }
+    applyAutoClockContrast();
+  }).catch(() => {});
+}
+
+function initWallpaper() {
+  if (settings.bgType === "bing") loadBing().then(applyWallpaper);
+  else applyWallpaper();
+}
+
+function updateDepthUI(photos) {
+  const status = $("depthStatus");
+  const add = $("addDepthBtn");
+  const remove = $("removeDepthBtn");
+  if (!status || !add || !remove) return;
+
+  const finish = (list) => {
+    const rec = list.find((p) => p.id === settings.photoId);
+    if (!rec) {
+      status.textContent = "Select one of your photos first.";
+      add.disabled = true;
+      remove.hidden = true;
+      return;
+    }
+    add.disabled = false;
+    status.textContent = rec.fg ? "A foreground is attached to this photo."
+                                : "No foreground on this photo yet.";
+    remove.hidden = !rec.fg;
+  };
+
+  if (photos) finish(photos);
+  else allPhotos().then(finish).catch(() => {});
+}
+
+$("bingRefresh").addEventListener("click", () => loadBing().then(applyWallpaper));
+
+$("addDepthBtn").addEventListener("click", () => $("depthInput").click());
+$("depthInput").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file || !settings.photoId) return;
+  getPhoto(settings.photoId).then((rec) => {
+    if (!rec) return;
+    rec.fg = file;
+    return putPhoto(rec);
+  }).then(() => {
+    e.target.value = "";
+    if (!settings.depth) {          // attaching a cut-out means you want it on
+      settings.depth = true;
+      syncControls();
+      saveSettings();
+    }
+    applySettings();
+    refreshPhotoGrid();
+    applyWallpaper();
+  }).catch(() => {});
+});
+
+$("removeDepthBtn").addEventListener("click", () => {
+  if (!settings.photoId) return;
+  getPhoto(settings.photoId).then((rec) => {
+    if (!rec) return;
+    delete rec.fg;
+    return putPhoto(rec);
+  }).then(() => {
+    refreshPhotoGrid();
+    applyWallpaper();
+  }).catch(() => {});
+});
+
+bindValue("optBgRotate", "bgRotate", (v) => v, applyWallpaper);
+bindValue("optUnsplashCat", "unsplashCat", (v) => v, () => applyWallpaper());
+
+const unsplashNextBtn = $("unsplashNext");
+if (unsplashNextBtn) {
+  unsplashNextBtn.addEventListener("click", () => {
+    applyUnsplashWallpaper(true);
+  });
+}
+
+
+// ============================================================
+// Auto clock contrast
+// ============================================================
+// "Auto" clock colour is supposed to pick whichever of light/dark text stays
+// readable against whatever is actually behind it — a solid colour, an
+// uploaded photo, today's Bing wallpaper, or a theme gradient. It reads the
+// real pixels where it can and falls back to the light/dark screen mode
+// where it can't (a hot-linked Bing image with no CORS header taints the
+// canvas, so sampling throws and we fall back there).
+
+function relLuminance(r, g, b) {
+  const chan = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  return 0.2126 * chan(r) + 0.7152 * chan(g) + 0.0722 * chan(b);
+}
+
+function hexLuminance(hex) {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.substr(0, 2), 16), g = parseInt(h.substr(2, 2), 16), b = parseInt(h.substr(4, 2), 16);
+  return relLuminance(r, g, b);
+}
+
+const THEME_LUMINANCE = {
+  sunset: 0.65, // warm bright sunset sky -> dark text
+  green: 0.25,  // dark green -> light text
+  blue: 0.22,   // deep blue -> light text
+  purple: 0.18, // deep purple -> light text
+  rose: 0.32,   // dark rose -> light text
+  mono: 0.15,   // dark mono -> light text
+  dark: 0.08,   // pure dark -> light text
+};
+
+/** Average luminance (0-1) of an image, sampling the center-top quadrant where the clock sits. */
+function sampleImageLuminance(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const w = 64, h = 64;
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        // Sample the region where the clock and date sit (upper center)
+        const sx = Math.floor(w * 0.15), sy = Math.floor(h * 0.20);
+        const sw = Math.floor(w * 0.70), sh = Math.floor(h * 0.45);
+        const { data } = ctx.getImageData(sx, sy, sw, sh);
+        let sum = 0, count = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          sum += relLuminance(data[i], data[i + 1], data[i + 2]);
+          count++;
+        }
+        resolve(sum / count);
+      } catch (err) { reject(err); }
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+function currentWallpaperUrl() {
+  const bg = getComputedStyle($("photoLayer")).backgroundImage;
+  const m = /url\(["']?(.+?)["']?\)/.exec(bg);
+  return m ? m[1] : null;
+}
+
+function applyAutoClockContrast() {
+  // "light"/"dark" pin one of auto's own two outcomes instead of detecting it —
+  // same rendering either way, just fixed instead of chosen dynamically.
+  if (settings.clockColor === "light") { document.body.dataset.autoDark = ""; return; }
+  if (settings.clockColor === "dark")  { document.body.dataset.autoDark = "1"; return; }
+  if (settings.clockColor !== "auto") {
+    delete document.body.dataset.autoDark;
+    return;
+  }
+  const finish = (isLight) => {
+    document.body.dataset.autoDark = isLight ? "1" : "";
+  };
+
+  if (settings.bgType === "solid") {
+    finish(hexLuminance(settings.solidColor) > 0.36);
+    return;
+  }
+
+  if (settings.bgType === "photo" || settings.bgType === "bing") {
+    const url = currentWallpaperUrl();
+    if (url) {
+      sampleImageLuminance(url)
+        .then((lum) => finish(lum > 0.36))
+        .catch(() => finish(resolvedMode() === "light"));
+      return;
+    }
+  }
+
+  // Gradient themes
+  if (resolvedMode() === "light") {
+    finish(true);
+  } else {
+    const theme = settings.bg || "green";
+    const lum = THEME_LUMINANCE[theme] !== undefined ? THEME_LUMINANCE[theme] : 0.2;
+    finish(lum > 0.36);
+  }
+}
+
+// ============================================================
+// Weather: manual location
+// ============================================================
+// Browser geolocation permission, once denied, usually can't be re-prompted —
+// leaving the widget permanently blank with no way out. A manual city search
+// (same Open-Meteo family, no new provider or key) is the actual fix, and is
+// what the "Set location in Settings" prompt below points people to.
+
+function geocodeCity(query) {
+  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=6&language=en&format=json`;
+  return fetch(url).then((r) => r.json()).then((data) => data.results || []);
+}
+
+function renderLocationResults(results) {
+  const box = $("locResults");
+  box.innerHTML = "";
+  if (!results.length) {
+    box.innerHTML = `<div class="loc-empty">No matches.</div>`;
+    return;
+  }
+  results.forEach((r) => {
+    const btn = document.createElement("button");
+    btn.className = "loc-result";
+    const bits = [r.admin1, r.country].filter(Boolean).join(", ");
+    btn.innerHTML = `<span>${r.name}</span><span class="loc-sub">${bits}</span>`;
+    btn.onclick = () => selectManualLocation({ name: r.name, lat: r.latitude, lon: r.longitude });
+    box.appendChild(btn);
+  });
+}
+
+let locSearchTimer;
+$("locInput").addEventListener("input", () => {
+  clearTimeout(locSearchTimer);
+  const q = $("locInput").value.trim();
+  if (q.length < 2) { $("locResults").innerHTML = ""; return; }
+  locSearchTimer = setTimeout(() => {
+    geocodeCity(q).then(renderLocationResults).catch(() => {
+      $("locResults").innerHTML = `<div class="loc-empty">Couldn't search right now.</div>`;
+    });
+  }, 350);
+});
+
+function selectManualLocation(loc) {
+  settings.manualLocation = loc;
+  saveSettings();
+  updateLocationUI();
+  $("locSearch").hidden = true;
+  $("locInput").value = "";
+  $("locResults").innerHTML = "";
+  loadWeather(loc.lat, loc.lon);
+}
+
+function updateLocationUI() {
+  $("locStatus").textContent = settings.manualLocation
+    ? settings.manualLocation.name
+    : "Automatic (device location)";
+  $("locUseAuto").hidden = !settings.manualLocation;
+}
+
+$("locChangeBtn").addEventListener("click", () => {
+  $("locSearch").hidden = !$("locSearch").hidden;
+  if (!$("locSearch").hidden) $("locInput").focus();
+});
+
+$("locUseAuto").addEventListener("click", () => {
+  settings.manualLocation = null;
+  saveSettings();
+  updateLocationUI();
+  initWeather();
+});
+
+/** Reached from the "Set location in Settings" prompt on the weather widget. */
+function openWeatherLocationSettings() {
+  openSettings();
+  showPane("widgets");
+  selectTab("w");
+  setTimeout(() => {
+    $("locChangeBtn").closest(".sw-row").scrollIntoView({ behavior: "smooth", block: "center" });
+    if ($("locSearch").hidden) $("locChangeBtn").click();
+  }, 320);
+}
+
+$("weatherEmptyCta").addEventListener("click", (e) => {
+  e.stopPropagation();
+  if ($("weatherCard").dataset.clickable) openWeatherLocationSettings();
 });
 
 // ============================================================

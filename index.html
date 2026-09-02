@@ -4,8 +4,45 @@
   <meta charset="utf-8" />
   <title>New Tab</title>
   <link rel="stylesheet" href="style.css" />
+  <script>
+    (function() {
+      try {
+        const raw = localStorage.getItem("liquidtab_cached_settings") || localStorage.getItem("liquidtab:settings");
+        if (raw) {
+          const s = JSON.parse(raw);
+          const doc = document.documentElement;
+          if (s.bg) doc.dataset.theme = s.bg;
+          const isDark = s.mode === "light" ? false : s.mode === "dark" ? true : window.matchMedia("(prefers-color-scheme: dark)").matches;
+          doc.dataset.mode = isDark ? "dark" : "light";
+          if (s.bgType) doc.dataset.bgtype = s.bgType;
+          if (s.scale) doc.dataset.scale = s.scale;
+          if (s.clockFont) doc.dataset.clockFont = s.clockFont;
+          if (s.clockColor) doc.dataset.clockColor = s.clockColor;
+        }
+      } catch(e) {}
+    })();
+  </script>
 </head>
-<body data-theme="green" data-mode="dark">
+<body class="preload">
+  <script>
+    (function() {
+      try {
+        const raw = localStorage.getItem("liquidtab_cached_settings") || localStorage.getItem("liquidtab:settings");
+        const b = document.body;
+        if (raw) {
+          const s = JSON.parse(raw);
+          b.dataset.theme = s.bg || "green";
+          const isDark = s.mode === "light" ? false : s.mode === "dark" ? true : window.matchMedia("(prefers-color-scheme: dark)").matches;
+          b.dataset.mode = isDark ? "dark" : "light";
+          if (s.bgType) b.dataset.bgtype = s.bgType;
+          if (s.scale) b.dataset.scale = s.scale;
+          if (s.clockFont) b.dataset.clockFont = s.clockFont;
+          if (s.clockColor) b.dataset.clockColor = s.clockColor;
+          if (s.solidColor && s.bgType === "solid") b.style.setProperty("--base", s.solidColor);
+        }
+      } catch(e) {}
+    })();
+  </script>
 
   <!-- ============ Background ============ -->
   <div class="bg" id="bg">
@@ -22,50 +59,43 @@
   <!-- ============ Now Island ============ -->
   <div class="island glass" id="island">
     <div class="island-inner" id="islandInner">
-      <span class="island-text" id="islandText">Good Morning</span>
+      <span class="island-text" id="islandText"></span>
     </div>
   </div>
 
   <!-- ============ Draggable widgets ============ -->
 
-  <div class="widget notes-card glass" id="notesCard" data-widget="notes">
-    <div class="notes-header">
-      <h2>Quick Notes</h2>
-      <button id="clearNotes" class="icon-btn" title="Clear notes">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>
-        </svg>
-      </button>
+  <div class="widget quote-card glass" id="quoteCard" data-widget="quote">
+    <svg class="quote-mark" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M9.2 5.4C6 6.9 3.8 10 3.8 13.6c0 3 1.9 5 4.3 5 2.2 0 3.9-1.7 3.9-3.9 0-2.1-1.5-3.7-3.5-3.7-.4 0-.9.1-1 .1.4-1.9 2.2-4.1 4.1-5.2l-2.4-.5zm9.4 0c-3.2 1.5-5.4 4.6-5.4 8.2 0 3 1.9 5 4.3 5 2.2 0 3.9-1.7 3.9-3.9 0-2.1-1.5-3.7-3.5-3.7-.4 0-.9.1-1 .1.4-1.9 2.2-4.1 4.1-5.2l-2.4-.5z"/>
+    </svg>
+    <div class="quote-body">
+      <p class="quote-text" id="quoteText">&nbsp;</p>
+      <div class="quote-foot">
+        <span class="quote-author" id="quoteAuthor"></span>
+        <span class="quote-cat" id="quoteCat"></span>
+      </div>
     </div>
-    <textarea id="notesArea" placeholder="Jot something down&hellip;" spellcheck="false"></textarea>
-    <div class="notes-foot">
-      <span id="notesCount">0 characters</span>
-      <span id="notesSaved" class="saved-flag">Saved</span>
-    </div>
+    <button class="icon-btn quote-shuffle" id="quoteShuffle" title="Another quote">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="m15 15 6 6"/><path d="M4 4l5 5"/>
+      </svg>
+    </button>
   </div>
 
   <div class="widget weather-card glass" id="weatherCard" data-widget="weather">
-    <div class="weather-top">
-      <div class="weather-icon" id="weatherIcon"></div>
-      <div class="weather-temp" id="weatherTemp">--<span class="deg">&#176;</span></div>
+    <div class="weather-icon" id="weatherIcon"></div>
+    <div class="weather-city" id="weatherCity">Locating&hellip;</div>
+    <div class="weather-temp" id="weatherTemp">--<span class="deg">&#176;</span></div>
+    <div class="weather-cond" id="weatherCond" hidden>Loading</div>
+    <span class="weather-hilo" id="weatherHilo" hidden></span>
+    <div class="weather-empty" id="weatherEmpty">
+      <span class="weather-empty-icons">
+        <span id="weatherEmptyIcon"></span>
+        <span>&#128205;</span>
+      </span>
+      <button class="weather-empty-cta" id="weatherEmptyCta"></button>
     </div>
-    <div class="weather-cond" id="weatherCond">Loading</div>
-    <div class="weather-meta">
-      <span id="weatherCity">Locating&hellip;</span>
-      <span class="weather-hilo" id="weatherHilo"></span>
-    </div>
-  </div>
-
-  <div class="widget news-card glass" id="newsCard" data-widget="news">
-    <div class="card-header">
-      <h2>Headlines</h2>
-      <button id="refreshNews" class="icon-btn" title="Refresh">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/>
-        </svg>
-      </button>
-    </div>
-    <div class="news-list" id="newsList"><div class="wx-loading">Loading headlines&hellip;</div></div>
   </div>
 
   <div class="widget cal-card glass" id="calCard" data-widget="calendar">
@@ -80,30 +110,23 @@
     <div class="cal-list" id="calList"></div>
   </div>
 
-  <div class="widget announce-card glass" id="announceCard" data-widget="announce">
-    <span class="announce-badge" id="announceBadge">News</span>
-    <div class="announce-body">
-      <b id="announceTitle">&nbsp;</b>
-      <span id="announceText"></span>
-    </div>
-    <button class="icon-btn" id="announceNext" title="Next">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
-    </button>
-  </div>
-
   <!-- ============ Centre ============ -->
   <div class="center">
     <div class="clock" id="clock">
-      <span id="clockHour">00</span><span class="clock-colon">:</span><span id="clockMinute">00</span><span class="clock-sup">
-        <span class="seconds" id="clockSec">00</span>
-        <span class="meridiem" id="clockMeridiem"></span>
+      <span id="clockHour"></span><span class="clock-colon">:</span><span id="clockMinute"></span><span class="clock-sup">
+        <span class="seconds" id="clockSec"></span>
       </span>
     </div>
-    <div class="date" id="date">Loading&hellip;</div>
+    <div class="date" id="date"></div>
 
     <form class="search glass" id="searchForm">
-      <span class="g-icon" id="engineIcon" aria-hidden="true"></span>
-      <input type="text" id="searchInput" placeholder="Search the web" autocomplete="off" spellcheck="false" />
+      <div class="search-badge" id="engineBadge">
+        <span class="g-icon" id="engineIcon" aria-hidden="true"></span>
+      </div>
+      <div class="search-input-wrapper">
+        <input type="text" id="searchInput" placeholder="Search Google" autocomplete="off" spellcheck="false" />
+        <span class="search-mirror" id="searchMirror" aria-hidden="true"></span>
+      </div>
     </form>
   </div>
 
@@ -111,22 +134,19 @@
   <div class="dock-wrap">
     <div class="dock glass" id="dock">
       <span class="dock-divider"></span>
-      <a id="settingsBtn" data-label="Settings" class="dock-sys">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3.2"/>
+      <a id="settingsBtn" data-label="Settings" class="dock-sys dock-settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
         </svg>
       </a>
     </div>
   </div>
 
-  <button class="notif-btn glass" id="notifBtn" title="Notifications">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-    </svg>
-    <span class="notif-dot"></span>
-  </button>
+  <!-- foreground cutout — paints ABOVE the clock to create the depth effect -->
+  <div class="depth-layer" id="depthLayer"></div>
+
+  <a class="bg-credit" id="bgCredit" target="_blank" rel="noopener"></a>
 
   <!-- ============================================================
        Settings window
@@ -166,6 +186,13 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18"/></svg>
             </span>
             <span>Widgets &amp; Dock</span>
+          </button>
+
+          <button class="sw-nav-item" data-pane="quotes">
+            <span class="ni" style="--ni-a:#c88cf5;--ni-b:#8b45e0">
+              <svg viewBox="0 0 24 24" fill="#fff"><path d="M9.2 5.4C6 6.9 3.8 10 3.8 13.6c0 3 1.9 5 4.3 5 2.2 0 3.9-1.7 3.9-3.9 0-2.1-1.5-3.7-3.5-3.7-.4 0-.9.1-1 .1.4-1.9 2.2-4.1 4.1-5.2l-2.4-.5zm9.4 0c-3.2 1.5-5.4 4.6-5.4 8.2 0 3 1.9 5 4.3 5 2.2 0 3.9-1.7 3.9-3.9 0-2.1-1.5-3.7-3.5-3.7-.4 0-.9.1-1 .1.4-1.9 2.2-4.1 4.1-5.2l-2.4-.5z"/></svg>
+            </span>
+            <span>Quotes</span>
           </button>
 
           <button class="sw-nav-item" data-pane="feeds">
@@ -292,11 +319,9 @@
             <h3 class="sw-label">Visible Widgets</h3>
             <div class="sw-card">
               <div class="sw-row"><span class="sw-row-label">Search</span><input type="checkbox" class="sw-toggle" id="optSearch" /></div>
-              <div class="sw-row"><span class="sw-row-label">Quick Notes</span><input type="checkbox" class="sw-toggle" id="optNotes" /></div>
+              <div class="sw-row"><span class="sw-row-label">Quote of the Day</span><input type="checkbox" class="sw-toggle" id="optQuote" /></div>
               <div class="sw-row"><span class="sw-row-label">Weather</span><input type="checkbox" class="sw-toggle" id="optWeather" /></div>
-              <div class="sw-row"><span class="sw-row-label">Headlines</span><input type="checkbox" class="sw-toggle" id="optNews" /></div>
               <div class="sw-row"><span class="sw-row-label">Calendar</span><input type="checkbox" class="sw-toggle" id="optCalendar" /></div>
-              <div class="sw-row"><span class="sw-row-label">Announcements</span><input type="checkbox" class="sw-toggle" id="optAnnounce" /></div>
             </div>
 
             <h3 class="sw-label">Search</h3>
@@ -315,13 +340,27 @@
             <h3 class="sw-label">Weather</h3>
             <div class="sw-card">
               <div class="sw-row">
+                <span class="sw-row-label">Location<em id="locStatus">Automatic (device location)</em></span>
+                <span class="sw-btn-group">
+                  <button class="sw-btn grey" id="locChangeBtn">Change</button>
+                  <button class="sw-btn grey" id="locUseAuto" hidden>Use My Location</button>
+                </span>
+              </div>
+              <div class="loc-search" id="locSearch" hidden>
+                <label class="sc-field">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                  <input type="text" id="locInput" placeholder="Search for a city&hellip;" autocomplete="off" spellcheck="false" />
+                </label>
+                <div class="loc-results" id="locResults"></div>
+              </div>
+              <div class="sw-row">
                 <span class="sw-row-label">Temperature Unit</span>
                 <select class="sw-select" id="optUnit">
                   <option value="celsius">Celsius</option>
                   <option value="fahrenheit">Fahrenheit</option>
                 </select>
               </div>
-              <div class="sw-note">Weather data provided by <b>Open-Meteo</b></div>
+              <div class="sw-note">Weather data provided by <b>Open-Meteo</b>. City search by <b>Open-Meteo Geocoding</b>.</div>
             </div>
 
             <h3 class="sw-label danger">Danger Zone</h3>
@@ -347,6 +386,49 @@
           </div>
         </section>
 
+        <!-- ============ Quotes ============ -->
+        <section class="sw-pane" data-pane="quotes">
+          <header class="sw-title">
+            <span class="ni lg" style="--ni-a:#c88cf5;--ni-b:#8b45e0">
+              <svg viewBox="0 0 24 24" fill="#fff"><path d="M9.2 5.4C6 6.9 3.8 10 3.8 13.6c0 3 1.9 5 4.3 5 2.2 0 3.9-1.7 3.9-3.9 0-2.1-1.5-3.7-3.5-3.7-.4 0-.9.1-1 .1.4-1.9 2.2-4.1 4.1-5.2l-2.4-.5zm9.4 0c-3.2 1.5-5.4 4.6-5.4 8.2 0 3 1.9 5 4.3 5 2.2 0 3.9-1.7 3.9-3.9 0-2.1-1.5-3.7-3.5-3.7-.4 0-.9.1-1 .1.4-1.9 2.2-4.1 4.1-5.2l-2.4-.5z"/></svg>
+            </span>
+            <h1>Quotes</h1>
+          </header>
+
+          <h3 class="sw-label">Source</h3>
+          <div class="sw-card pad">
+            <div class="sw-segment" id="quoteSourceSeg" style="margin-bottom:0">
+              <button class="active" data-src="builtin">Built-in</button>
+              <button data-src="mine">Mine Only</button>
+              <button data-src="both">Both</button>
+            </div>
+          </div>
+
+          <h3 class="sw-label">Rotation</h3>
+          <div class="sw-card">
+            <div class="sw-row"><span class="sw-row-label">Show Quote Widget</span><input type="checkbox" class="sw-toggle" id="optQuote2" /></div>
+            <div class="sw-row">
+              <span class="sw-row-label">New Quote<em>How often the quote changes.</em></span>
+              <select class="sw-select" id="optQuoteRotate">
+                <option value="tab">Every New Tab</option>
+                <option value="hour">Every Hour</option>
+                <option value="day">Every Day</option>
+              </select>
+            </div>
+            <div class="sw-row">
+              <span class="sw-row-label">Pool Size<em>Quotes currently available to draw from.</em></span>
+              <span class="sw-value" id="quotePoolSize">0</span>
+            </div>
+          </div>
+
+          <h3 class="sw-label">Categories</h3>
+          <div class="sw-card" id="quoteCats"></div>
+
+          <h3 class="sw-label">My Quotes</h3>
+          <div class="sw-card tight" id="myQuoteList"></div>
+          <button class="sw-btn blue wide" id="addQuoteBtn">+ Add Quote</button>
+        </section>
+
         <!-- ============ Feeds ============ -->
         <section class="sw-pane" data-pane="feeds">
           <header class="sw-title">
@@ -355,20 +437,6 @@
             </span>
             <h1>Feeds</h1>
           </header>
-
-          <h3 class="sw-label">News</h3>
-          <div class="sw-card">
-            <div class="sw-row"><span class="sw-row-label">Show Headlines Widget</span><input type="checkbox" class="sw-toggle" id="optNews2" /></div>
-            <div class="sw-row">
-              <span class="sw-row-label">Country</span>
-              <select class="sw-select" id="optNewsCountry"></select>
-            </div>
-            <div class="sw-row">
-              <span class="sw-row-label">Interests</span>
-              <select class="sw-select" id="optNewsTopic"></select>
-            </div>
-            <div class="sw-note">Headlines from <b>Google News</b> RSS. No account or API key needed.</div>
-          </div>
 
           <h3 class="sw-label">Google Calendar</h3>
           <div class="sw-card">
@@ -381,16 +449,6 @@
               </span>
             </div>
             <div class="sw-note" id="calSetupNote"></div>
-          </div>
-
-          <h3 class="sw-label">Announcements</h3>
-          <div class="sw-card">
-            <div class="sw-row"><span class="sw-row-label">Show Announcements</span><input type="checkbox" class="sw-toggle" id="optAnnounce2" /></div>
-            <div class="sw-row">
-              <span class="sw-row-label">Feed URL<em>A raw GitHub or Gist JSON file.</em></span>
-              <input type="text" class="sw-input" id="optAnnounceUrl" placeholder="https://raw.githubusercontent.com/&hellip;" />
-            </div>
-            <div class="sw-note">Expects <b>[{ "title": "&hellip;", "text": "&hellip;", "url": "&hellip;" }]</b>. Only <b>raw.githubusercontent.com</b> and <b>gist.githubusercontent.com</b> are permitted.</div>
           </div>
         </section>
 
@@ -418,22 +476,21 @@
             <div class="sw-row">
               <span class="sw-row-label">Clock Font</span>
               <select class="sw-select" id="optClockFont">
-                <option value="sfpro">SF Pro</option>
-                <option value="outfit">Outfit</option>
-                <option value="playfair">Playfair Display</option>
+                <option value="default">Default</option>
                 <option value="wide">Wide</option>
                 <option value="serif">Serif</option>
                 <option value="mono">Mono</option>
-                <option value="default">Default</option>
               </select>
             </div>
             <div class="sw-row">
               <span class="sw-row-label">Clock Color</span>
               <span class="sw-dots" id="clockColors">
-                <button class="dot active" data-cc="auto" title="Auto" style="background:linear-gradient(160deg,#fff,#48484a)"></button>
-                <button class="dot" data-cc="white" title="Solid White" style="background:#fff"></button>
-                <button class="dot" data-cc="dim" title="Dimmed" style="background:#48484a"></button>
-                <button class="dot cc-accent" data-cc="accent" title="Theme Accent"></button>
+                <button class="dot active" data-cc="auto" title="Auto &mdash; adapts to what's behind it" style="background:linear-gradient(160deg,#fff,#48484a)"></button>
+                <button class="dot" data-cc="light" title="Light" style="background:linear-gradient(160deg,#ffffff,#dcdce0)"></button>
+                <button class="dot" data-cc="dark" title="Dark" style="background:linear-gradient(160deg,#4a3c2e,#2b221a)"></button>
+                <label class="dot cc-custom" data-cc="custom" title="Custom colour">
+                  <input type="color" id="clockCustomColor" />
+                </label>
               </span>
             </div>
           </div>
@@ -471,7 +528,9 @@
             <div class="sw-segment small" id="bgSegment">
               <button class="active" data-bgtype="gradient">Gradient</button>
               <button data-bgtype="solid">Solid</button>
-              <button data-bgtype="photo">Photo</button>
+              <button data-bgtype="unsplash">Unsplash</button>
+              <button data-bgtype="photo">Photos</button>
+              <button data-bgtype="bing">Daily</button>
             </div>
 
             <div class="bg-tab active" data-bgtype="gradient">
@@ -499,6 +558,33 @@
               </div>
             </div>
 
+            <div class="bg-tab" data-bgtype="unsplash">
+              <div class="sw-row">
+                <span class="sw-row-label">Collection<em>Curated high-res photos.</em></span>
+                <select class="sw-select" id="optUnsplashCat">
+                  <option value="all">All / Curated Random</option>
+                  <option value="nature">Nature &amp; Landscapes</option>
+                  <option value="minimal">Minimal &amp; Dark</option>
+                  <option value="architecture">Architecture &amp; City</option>
+                  <option value="space">Space &amp; Cosmic</option>
+                  <option value="cyberpunk">Cyberpunk &amp; Neon</option>
+                </select>
+              </div>
+              <div class="sw-row">
+                <span class="sw-row-label">Curated Wallpaper<em id="unsplashStatus">High-definition photography from Unsplash.</em></span>
+                <button class="sw-btn blue" id="unsplashNext">Next Photo</button>
+              </div>
+              <div class="sw-note">Free high-resolution photos provided by <b>Unsplash</b>.</div>
+            </div>
+
+            <div class="bg-tab" data-bgtype="bing">
+              <div class="sw-row">
+                <span class="sw-row-label">Daily Wallpaper<em id="bingStatus">Bing's curated photo of the day.</em></span>
+                <button class="sw-btn grey" id="bingRefresh">Refresh</button>
+              </div>
+              <div class="sw-note">Fetched from <b>Bing</b>. No account or API key needed.</div>
+            </div>
+
             <div class="bg-tab" data-bgtype="photo">
               <div class="photo-grid" id="photoGrid"></div>
               <button class="sw-btn blue wide" id="addPhotoBtn">+ Add Photo</button>
@@ -507,15 +593,51 @@
             </div>
           </div>
 
+          <h3 class="sw-label">Rotation</h3>
+          <div class="sw-card">
+            <div class="sw-row">
+              <span class="sw-row-label">Change Wallpaper<em>Applies to Unsplash, Daily &amp; Photos.</em></span>
+              <select class="sw-select" id="optBgRotate">
+                <option value="never">Never</option>
+                <option value="tab">Every New Tab</option>
+                <option value="5min">Every 5 Minutes</option>
+                <option value="15min">Every 15 Minutes</option>
+                <option value="hour">Every Hour</option>
+                <option value="day">Every Day</option>
+              </select>
+            </div>
+          </div>
+
+          <h3 class="sw-label">Depth Effect</h3>
+          <div class="sw-card">
+            <div class="sw-row">
+              <span class="sw-row-label"><span class="lbl">Depth Effect <b class="badge">BETA</b></span><em>Layers a cut-out subject in front of the clock, like an iOS lock screen.</em></span>
+              <input type="checkbox" class="sw-toggle" id="optDepth" />
+            </div>
+            <div class="sw-row">
+              <span class="sw-row-label">Parallax<em>Layers shift slightly as you move the pointer.</em></span>
+              <input type="checkbox" class="sw-toggle" id="optParallax" />
+            </div>
+            <div class="sw-row">
+              <span class="sw-row-label">Foreground Layer<em id="depthStatus">Select one of your photos first.</em></span>
+              <span class="sw-btn-group">
+                <button class="sw-btn blue" id="addDepthBtn">Add PNG</button>
+                <button class="sw-btn grey" id="removeDepthBtn" hidden>Remove</button>
+                <input type="file" id="depthInput" accept="image/png,image/webp" hidden />
+              </span>
+            </div>
+            <div class="sw-note">Pair a wallpaper with a transparent <b>PNG</b> of its subject. Tools like <b>remove.bg</b> or the iOS Photos "lift subject" gesture produce one in seconds.</div>
+          </div>
+
           <h3 class="sw-label">Effects</h3>
           <div class="sw-card">
             <div class="sw-row">
               <span class="sw-row-label">Background Tint Opacity</span>
               <span class="sw-slider">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="6" width="16" height="12" rx="2"/></svg>
-                <input type="range" id="optTint" min="0" max="100" step="1" />
+                <input type="range" id="optTint" min="0" max="100" step="1" value="10" />
                 <svg viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="6" width="16" height="12" rx="2"/></svg>
-                <output class="sw-slider-value" id="optTintValue">100%</output>
+                <output class="sw-slider-value" id="optTintValue">10%</output>
               </span>
             </div>
           </div>
@@ -533,7 +655,7 @@
           <div class="sw-card">
             <div class="sw-row"><span class="sw-row-label">Liquid Tab</span><span class="sw-value" id="aboutVersion">3.0</span></div>
             <div class="sw-row"><span class="sw-row-label">Photos Stored</span><span class="sw-value" id="aboutPhotos">0</span></div>
-            <div class="sw-row"><span class="sw-row-label">Notes Length</span><span class="sw-value" id="aboutNotes">0 characters</span></div>
+            <div class="sw-row"><span class="sw-row-label">Quotes Available</span><span class="sw-value" id="aboutQuotes">0</span></div>
           </div>
 
           <h3 class="sw-label">Data Sources</h3>
@@ -542,8 +664,8 @@
               <span class="sw-row-label">Open-Meteo<em>Weather forecasts</em></span>
               <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></span>
             </a>
-            <a class="sw-row link" href="https://news.google.com" target="_blank" rel="noopener">
-              <span class="sw-row-label">Google News<em>Headline feed</em></span>
+            <a class="sw-row link" href="https://www.bing.com" target="_blank" rel="noopener">
+              <span class="sw-row-label">Bing<em>Daily wallpaper</em></span>
               <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></span>
             </a>
             <a class="sw-row link" href="https://calendar.google.com" target="_blank" rel="noopener">
@@ -574,7 +696,7 @@
             <div class="sw-row"><span class="sw-row-label">Close settings</span><span class="sw-value"><kbd>Esc</kbd></span></div>
           </div>
 
-          <div class="sw-note center">Your notes, photos, shortcuts and settings never leave this browser.</div>
+          <div class="sw-note center">Your quotes, photos, shortcuts and settings never leave this browser.</div>
         </section>
 
         <!-- ============ Search results ============ -->
@@ -587,6 +709,7 @@
     </div>
   </div>
 
+  <script src="quotes.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
