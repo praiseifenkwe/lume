@@ -12,7 +12,7 @@
   ],
   "host_permissions": [
     "https://api.open-meteo.com/*",
-    "https://www.bing.com/*",
-    "https://geocoding-api.open-meteo.com/*"
+    "https://geocoding-api.open-meteo.com/*",
+    "https://images.unsplash.com/*"
   ]
 }

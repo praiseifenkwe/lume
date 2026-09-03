@@ -51,11 +51,13 @@ const DEFAULTS = {
   mode: "dark",
   bg: "green", bgType: "unsplash", solidColor: "#101418", photoId: null,
   unsplashCat: "all",
-  bgRotate: "never", depth: false, parallax: true,
+  bgRotate: "tab", depth: false, parallax: true,
   tint: 20, blur: 10, grain: true,
   scale: "larger", clockFont: "default", clockColor: "dark", clockCustomColor: "#ffffff",
   snap: true, positions: {},
   lowPerf: false,
+  customGradient: { c1: "#6effbb", c2: "#0a6f8a" },
+  recentSolidColors: ["#1b2a4a", "#144234", "#4a1e42", "#8c3b2b", "#2d3748"],
 };
 
 let settings  = { ...DEFAULTS };
@@ -64,7 +66,7 @@ let MY_QUOTES = [];
 
 const THEMES = {
   green: "Verdant", blue: "Deep Sea", purple: "Nebula", sunset: "Ember",
-  rose: "Blossom", mono: "Graphite", dark: "Midnight",
+  rose: "Blossom", mono: "Graphite", dark: "Midnight", custom: "Custom",
 };
 
 const ENGINES = {
@@ -132,6 +134,22 @@ function loadState() {
       settings.defaultQuoteRotateUpgraded = true;
       saveSettings();
     }
+    if (!settings.defaultBgRotateUpgraded) {
+      settings.bgRotate = "tab";
+      settings.defaultBgRotateUpgraded = true;
+      saveSettings();
+    }
+    if (settings.bgType === "bing") {
+      settings.bgType = "unsplash";
+      saveSettings();
+    }
+    if (!settings.customGradient) {
+      settings.customGradient = { c1: "#6effbb", c2: "#0a6f8a" };
+    }
+    if (!Array.isArray(settings.recentSolidColors) || !settings.recentSolidColors.length || settings.recentSolidColors.includes("#0b0d11")) {
+      settings.recentSolidColors = ["#1b2a4a", "#144234", "#4a1e42", "#8c3b2b", "#2d3748"];
+      saveSettings();
+    }
     if (Array.isArray(result.shortcuts)) {
       SHORTCUTS = result.shortcuts.filter(s => !(s.url || "").toLowerCase().includes("github.com"));
       saveShortcuts();
@@ -177,6 +195,98 @@ darkQuery.addEventListener("change", () => {
   if (settings.mode === "system") applySettings();
 });
 
+function updateThemePreview(activeUrl, activeTitle, activeKind) {
+  const prevHero = $("themePreview");
+  const nameEl = $("themeName");
+  const kindEl = $("themeKind");
+  if (!prevHero) return;
+
+  if (settings.bgType === "unsplash") {
+    if (activeUrl) {
+      prevHero.style.backgroundImage = `url("${activeUrl}")`;
+      prevHero.style.backgroundSize = "cover";
+      prevHero.style.backgroundPosition = "center";
+      prevHero.style.backgroundColor = "transparent";
+      if (nameEl) nameEl.textContent = activeTitle || "Unsplash HD";
+      if (kindEl) kindEl.textContent = activeKind || "Unsplash Photo";
+    } else {
+      const pool = UNSPLASH_COLLECTIONS[settings.unsplashCat] || UNSPLASH_COLLECTIONS.all;
+      if (pool && pool.length) {
+        const idx = (rotationIndex(pool.length) + currentUnsplashOffset) % pool.length;
+        const item = pool[idx];
+        const u = `https://images.unsplash.com/${item.id}?auto=format&fit=crop&w=600&q=80`;
+        prevHero.style.backgroundImage = `url("${u}")`;
+        prevHero.style.backgroundSize = "cover";
+        prevHero.style.backgroundPosition = "center";
+        prevHero.style.backgroundColor = "transparent";
+        if (nameEl) nameEl.textContent = item.author ? `By ${item.author}` : "Unsplash HD";
+        if (kindEl) kindEl.textContent = "Unsplash Photo";
+      }
+    }
+  } else if (settings.bgType === "photo") {
+    if (activeUrl) {
+      prevHero.style.backgroundImage = `url("${activeUrl}")`;
+      prevHero.style.backgroundSize = "cover";
+      prevHero.style.backgroundPosition = "center";
+      prevHero.style.backgroundColor = "transparent";
+      if (nameEl) nameEl.textContent = activeTitle || "Custom Photo";
+      if (kindEl) kindEl.textContent = activeKind || "Your Photo";
+    } else {
+      allPhotos().then((photos) => {
+        const rec = photos.find((p) => p.id === settings.photoId) || photos[0];
+        if (rec) {
+          let src = "";
+          if (rec.blob instanceof Blob) {
+            try { src = trackWallpaperUrl(URL.createObjectURL(rec.blob)); } catch (e) {}
+          } else if (rec.url) {
+            src = rec.url;
+          }
+          if (src) {
+            prevHero.style.backgroundImage = `url("${src}")`;
+            prevHero.style.backgroundSize = "cover";
+            prevHero.style.backgroundPosition = "center";
+            prevHero.style.backgroundColor = "transparent";
+            if (nameEl) nameEl.textContent = rec.name || "Custom Photo";
+            if (kindEl) kindEl.textContent = "Your Photo";
+            return;
+          }
+        }
+        prevHero.style.backgroundImage = "none";
+        prevHero.style.backgroundColor = "#1a1d24";
+        if (nameEl) nameEl.textContent = "No Photo Selected";
+        if (kindEl) kindEl.textContent = "Your Photo";
+      });
+    }
+  } else if (settings.bgType === "solid") {
+    prevHero.style.backgroundImage = "none";
+    prevHero.style.backgroundColor = settings.solidColor;
+    if (nameEl) nameEl.textContent = settings.solidColor.toUpperCase();
+    if (kindEl) kindEl.textContent = "Solid Colour";
+  } else if (settings.bgType === "gradient") {
+    prevHero.style.backgroundImage = "none";
+    if (settings.bg === "custom") {
+      const g = settings.customGradient || { c1: "#6effbb", c2: "#0a6f8a" };
+      prevHero.style.background = `linear-gradient(140deg, ${g.c1}, ${g.c2} 55%, #050810)`;
+      if (nameEl) nameEl.textContent = "Custom Gradient";
+      if (kindEl) kindEl.textContent = "Dynamic Gradient";
+    } else {
+      const themeGradients = {
+        green: "linear-gradient(140deg,#8ef0b8,#178a63 55%,#0b4436)",
+        blue: "linear-gradient(140deg,#8ed0f0,#1f6fb0 55%,#0c2c52)",
+        purple: "linear-gradient(140deg,#d0a5f5,#7b3fd4 55%,#33125e)",
+        sunset: "linear-gradient(140deg,#ffc074,#e2603f 55%,#7d1f45)",
+        rose: "linear-gradient(140deg,#ffb3cd,#e0537f 55%,#5e1440)",
+        mono: "linear-gradient(140deg,#9aa4ad,#3d464e 55%,#12161a)",
+        dark: "linear-gradient(140deg,#2c3550,#141a2b 55%,#05070d)",
+      };
+      const theme = THEMES[settings.bg] ? settings.bg : "green";
+      prevHero.style.background = themeGradients[theme] || themeGradients.green;
+      if (nameEl) nameEl.textContent = THEMES[theme] || "Gradient";
+      if (kindEl) kindEl.textContent = "Dynamic Gradient";
+    }
+  }
+}
+
 // ============================================================
 // Apply settings
 // ============================================================
@@ -205,8 +315,26 @@ function applySettings() {
   // background
   if (settings.bgType === "solid") {
     body.style.setProperty("--base", settings.solidColor);
+    body.style.removeProperty("--c1");
+    body.style.removeProperty("--c2");
+    body.style.removeProperty("--c3");
+    body.style.removeProperty("--c4");
+    body.style.removeProperty("--accent");
+  } else if (settings.bgType === "gradient" && settings.bg === "custom") {
+    const g = settings.customGradient || { c1: "#6effbb", c2: "#0a6f8a" };
+    body.style.setProperty("--c1", g.c1);
+    body.style.setProperty("--c2", g.c2);
+    body.style.setProperty("--c3", g.c1 + "99");
+    body.style.setProperty("--c4", g.c2 + "88");
+    body.style.setProperty("--base", "#050810");
+    body.style.setProperty("--accent", g.c1);
   } else {
+    body.style.removeProperty("--c1");
+    body.style.removeProperty("--c2");
+    body.style.removeProperty("--c3");
+    body.style.removeProperty("--c4");
     body.style.removeProperty("--base");
+    body.style.removeProperty("--accent");
   }
   applyWallpaper();
 
@@ -224,25 +352,19 @@ function applySettings() {
   $("engineIcon").innerHTML = settings.engine === "google" ? GOOGLE_MARK : GLASS_MARK;
   $("searchInput").placeholder = `Search ${ENGINES[settings.engine].name}`;
 
-  // settings-window reflections
-  $("themeName").textContent = settings.bgType === "photo" ? "Custom Photo"
-                             : settings.bgType === "solid" ? settings.solidColor.toUpperCase()
-                             : settings.bgType === "unsplash" ? "Unsplash HD"
-                             : settings.bgType === "bing" ? "Bing Daily"
-                             : THEMES[theme];
-  $("themeKind").textContent = settings.bgType === "photo" ? "Your photo"
-                             : settings.bgType === "solid" ? "Solid colour"
-                             : settings.bgType === "unsplash" ? "Random HD"
-                             : settings.bgType === "bing" ? "Daily photo" : "Gradient";
+  updateThemePreview();
   $("optSolidHex").textContent = settings.solidColor.toUpperCase();
+  if ($("optSolid")) $("optSolid").value = settings.solidColor;
 
-  $$("#bgSwatches .dot").forEach((d) => d.classList.toggle("active", d.dataset.bg === theme));
+  $$("#bgSwatches .dot").forEach((d) => d.classList.toggle("active", settings.bgType === "gradient" && d.dataset.bg === theme));
+  $$("#solidPresets .dot").forEach((d) => d.classList.toggle("active", settings.bgType === "solid" && (d.dataset.solid || "").toLowerCase() === settings.solidColor.toLowerCase()));
   $$("#clockColors .dot").forEach((d) => d.classList.toggle("active", d.dataset.cc === settings.clockColor));
   $$("#scaleTiles .sw-tile").forEach((t) => t.classList.toggle("active", t.dataset.scale === settings.scale));
   $$("#modeTiles .sw-tile").forEach((t) => t.classList.toggle("active", t.dataset.mode === settings.mode));
   $$("#bgSegment button").forEach((b) => b.classList.toggle("active", b.dataset.bgtype === settings.bgType));
   $$(".bg-tab").forEach((t) => t.classList.toggle("active", t.dataset.bgtype === settings.bgType));
 
+  renderRecentSolidColors();
   updateProfile();
   updateQuoteStats();
   updateClock();
@@ -266,7 +388,7 @@ function syncControls() {
   set("optQuote", "checked", settings.showQuote);
   set("optQuote2", "checked", settings.showQuote);
   set("optQuoteRotate", "value", settings.quoteRotate);
-  set("optBgRotate", "value", settings.bgRotate);
+  set("optBgRotate", "value", settings.bgRotate || "tab");
   $$("#quoteCats input").forEach((cb) => { cb.checked = settings.quoteCats.includes(cb.dataset.cat); });
   set("optWeather", "checked", settings.showWeather);
   set("optUnit", "value", settings.unit);
@@ -280,6 +402,10 @@ function syncControls() {
   set("optSnap", "checked", settings.snap);
   set("optSolid", "value", settings.solidColor);
   set("optUnsplashCat", "value", settings.unsplashCat || "all");
+  if (settings.customGradient) {
+    set("optGradColor1", "value", settings.customGradient.c1);
+    set("optGradColor2", "value", settings.customGradient.c2);
+  }
 }
 
 function updateProfile() {
@@ -604,9 +730,51 @@ const getPhoto  = (id)  => dbRun("readonly",  (s) => s.get(id));
 const allPhotos = ()    => dbRun("readonly",  (s) => s.getAll());
 const delPhoto  = (id)  => dbRun("readwrite", (s) => s.delete(id));
 
+function addPhotoFromUrl(url) {
+  if (!url || !url.trim().startsWith("http")) {
+    alert("Please enter a valid image URL starting with http:// or https://");
+    return;
+  }
+  const cleanUrl = url.trim();
+  const testImg = new Image();
+  testImg.onload = () => {
+    const rec = { id: "photo_" + Date.now(), url: cleanUrl, name: "Web Photo", created: Date.now() };
+    fetch(cleanUrl)
+      .then((r) => { if (!r.ok) throw new Error(); return r.blob(); })
+      .then((blob) => { rec.blob = blob; return putPhoto(rec); })
+      .catch(() => putPhoto(rec))
+      .then(() => {
+        settings.photoId = rec.id;
+        settings.bgType = "photo";
+        applySettings();
+        saveSettings();
+        applyWallpaper();
+        refreshPhotoGrid();
+        const input = $("photoUrlInput");
+        if (input) input.value = "";
+        const form = $("photoUrlForm");
+        if (form) form.style.display = "none";
+      });
+  };
+  testImg.onerror = () => {
+    alert("Could not load image from this URL. Please verify the URL points directly to an image file (.jpg, .png, etc.).");
+  };
+  testImg.src = cleanUrl;
+}
+
+let gridObjectUrls = [];
+function clearGridUrls() {
+  gridObjectUrls.forEach((u) => {
+    try { URL.revokeObjectURL(u); } catch (e) {}
+  });
+  gridObjectUrls = [];
+}
+
 function refreshPhotoGrid() {
+  clearGridUrls();
   allPhotos().then((photos) => {
     const grid = $("photoGrid");
+    if (!grid) return;
     grid.innerHTML = "";
     const ap = $("aboutPhotos");
     if (ap) ap.textContent = String(photos.length);
@@ -614,9 +782,37 @@ function refreshPhotoGrid() {
     photos.forEach((rec) => {
       const b = document.createElement("button");
       b.className = "photo-thumb";
-      b.style.backgroundImage = `url("${trackUrl(URL.createObjectURL(rec.blob))}")`;
       b.classList.toggle("active", settings.photoId === rec.id);
-      b.title = rec.fg ? "Has a depth foreground" : "";
+      b.title = rec.name || (rec.fg ? "Has a depth foreground" : "");
+
+      let photoSrc = "";
+      if (rec.blob instanceof Blob) {
+        try {
+          photoSrc = URL.createObjectURL(rec.blob);
+          gridObjectUrls.push(photoSrc);
+        } catch (e) {}
+      } else if (rec.url) {
+        photoSrc = rec.url;
+      }
+
+      if (photoSrc) {
+        const img = document.createElement("img");
+        img.className = "photo-thumb-img";
+        img.src = photoSrc;
+        img.alt = rec.name || "Photo";
+        img.onerror = () => {
+          img.style.display = "none";
+          fallback.style.display = "flex";
+        };
+        b.appendChild(img);
+      }
+
+      const fallback = document.createElement("div");
+      fallback.className = "photo-thumb-fallback";
+      fallback.style.display = photoSrc ? "none" : "flex";
+      fallback.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>Invalid</span>`;
+      b.appendChild(fallback);
+
       b.onclick = () => {
         settings.photoId = rec.id;
         settings.bgType = "photo";
@@ -635,25 +831,25 @@ function refreshPhotoGrid() {
 
       const del = document.createElement("span");
       del.className = "photo-del";
+      del.title = "Remove photo";
       del.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>`;
       del.onclick = (e) => {
         e.stopPropagation();
         delPhoto(rec.id).then(() => {
           if (settings.photoId === rec.id) {
             settings.photoId = null;
-            settings.bgType = "gradient";
+            settings.bgType = "unsplash";
             applySettings();
             saveSettings();
+            applyWallpaper();
           }
           refreshPhotoGrid();
-          applyWallpaper();
         });
       };
-
       b.appendChild(del);
       grid.appendChild(b);
     });
-  }).catch(() => {});
+  });
 }
 
 $("addPhotoBtn").addEventListener("click", () => $("photoInput").click());
@@ -661,11 +857,24 @@ $("photoInput").addEventListener("change", (e) => {
   const files = [...e.target.files];
   if (!files.length) return;
   Promise.all(files.map((file) =>
-    putPhoto({ id: `p${Date.now()}${Math.random().toString(36).slice(2, 7)}`, blob: file })
+    putPhoto({
+      id: `p${Date.now()}${Math.random().toString(36).slice(2, 7)}`,
+      blob: file,
+      name: file.name ? file.name.replace(/\.[^/.]+$/, "") : "Uploaded Photo",
+      created: Date.now()
+    })
   )).then(() => {
     e.target.value = "";
-    refreshPhotoGrid();
-    applyWallpaper();
+    allPhotos().then((photos) => {
+      if (photos.length) {
+        settings.photoId = photos[photos.length - 1].id;
+        settings.bgType = "photo";
+        applySettings();
+        saveSettings();
+        applyWallpaper();
+      }
+      refreshPhotoGrid();
+    });
   }).catch(() => {});
 });
 
@@ -956,6 +1165,7 @@ const overlay = $("settingsOverlay");
 const openSettings  = () => {
   overlay.classList.add("open");
   document.body.classList.add("settings-open");
+  updateThemePreview();
   setTimeout(layoutWidgets, 10);
 };
 const closeSettings = () => {
@@ -965,8 +1175,8 @@ const closeSettings = () => {
 };
 
 $("settingsBtn").addEventListener("click", (e) => { e.preventDefault(); openSettings(); });
-$("tlClose").addEventListener("click", closeSettings);
-$("tlMin").addEventListener("click", () => $("settingsWindow").classList.toggle("no-sidebar"));
+$("tlClose")?.addEventListener("click", closeSettings);
+$("tlMin")?.addEventListener("click", () => $("settingsWindow").classList.toggle("no-sidebar"));
 overlay.addEventListener("click", (e) => { if (e.target === overlay) closeSettings(); });
 window.addEventListener("keydown", (e) => { if (e.key === "Escape" && overlay.classList.contains("open")) closeSettings(); });
 
@@ -998,14 +1208,126 @@ function selectTab(tab) {
 }
 $$("#wdSegment button").forEach((btn) => btn.addEventListener("click", () => selectTab(btn.dataset.tab)));
 
+function addRecentSolidColor(color) {
+  if (!color) return;
+  const c = color.toLowerCase();
+  const recents = (settings.recentSolidColors || []).filter((x) => x.toLowerCase() !== c);
+  recents.unshift(c);
+  settings.recentSolidColors = recents.slice(0, 7);
+  saveSettings();
+  renderRecentSolidColors();
+}
+
+function renderRecentSolidColors() {
+  const container = $("solidRecents");
+  const row = $("solidRecentRow");
+  if (!container || !row) return;
+  const list = settings.recentSolidColors || [];
+  if (!list.length) {
+    row.style.display = "none";
+    return;
+  }
+  row.style.display = "";
+  container.innerHTML = "";
+  list.forEach((col) => {
+    const btn = document.createElement("button");
+    btn.className = "dot";
+    btn.style.background = col;
+    btn.title = col;
+    if (settings.bgType === "solid" && settings.solidColor.toLowerCase() === col.toLowerCase()) {
+      btn.classList.add("active");
+    }
+    btn.onclick = () => {
+      settings.solidColor = col;
+      settings.bgType = "solid";
+      addRecentSolidColor(col);
+      applySettings();
+      saveSettings();
+      applyWallpaper();
+    };
+    container.appendChild(btn);
+  });
+}
+
 $$("#bgSegment button").forEach((btn) => {
   btn.addEventListener("click", () => {
     settings.bgType = btn.dataset.bgtype;
     applySettings();
     saveSettings();
-    if (settings.bgType === "bing" && !bingImages.length) loadBing().then(applyWallpaper);
-    else applyWallpaper();
+    applyWallpaper();
   });
+});
+
+$$("#solidPresets .dot").forEach((dot) => {
+  dot.addEventListener("click", () => {
+    const col = dot.dataset.solid;
+    settings.solidColor = col;
+    settings.bgType = "solid";
+    addRecentSolidColor(col);
+    applySettings();
+    saveSettings();
+    applyWallpaper();
+  });
+});
+
+$("optSolid")?.addEventListener("input", (e) => {
+  settings.solidColor = e.target.value;
+  settings.bgType = "solid";
+  applySettings();
+  saveSettings();
+  applyWallpaper();
+});
+
+$("optSolid")?.addEventListener("change", (e) => {
+  addRecentSolidColor(e.target.value);
+});
+
+$("applyCustomGrad")?.addEventListener("click", () => {
+  const c1 = $("optGradColor1") ? $("optGradColor1").value : "#6effbb";
+  const c2 = $("optGradColor2") ? $("optGradColor2").value : "#0a6f8a";
+  settings.customGradient = { c1, c2 };
+  settings.bg = "custom";
+  settings.bgType = "gradient";
+  applySettings();
+  saveSettings();
+  applyWallpaper();
+});
+
+$("optGradColor1")?.addEventListener("change", () => {
+  if (settings.bg === "custom" && settings.bgType === "gradient") {
+    $("applyCustomGrad")?.click();
+  }
+});
+$("optGradColor2")?.addEventListener("change", () => {
+  if (settings.bg === "custom" && settings.bgType === "gradient") {
+    $("applyCustomGrad")?.click();
+  }
+});
+
+$("addPhotoUrlBtn")?.addEventListener("click", () => {
+  const form = $("photoUrlForm");
+  if (form) {
+    const isHidden = form.style.display === "none" || !form.style.display;
+    form.style.display = isHidden ? "flex" : "none";
+    if (isHidden) $("photoUrlInput")?.focus();
+  }
+});
+
+$("photoUrlCancel")?.addEventListener("click", () => {
+  const form = $("photoUrlForm");
+  if (form) form.style.display = "none";
+});
+
+$("photoUrlSave")?.addEventListener("click", () => {
+  const url = $("photoUrlInput")?.value;
+  if (url) addPhotoFromUrl(url);
+});
+
+$("photoUrlInput")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    $("photoUrlSave")?.click();
+  }
 });
 
 // ---- binding helpers ----
@@ -1494,12 +1816,17 @@ bindValue("optQuoteRotate", "quoteRotate", (v) => v, () => newQuote(true));
 // ============================================================
 // Wallpaper — Unsplash, Live Video, Photo library, Bing daily, rotation, depth
 // ============================================================
-let objectUrls = [];
-const trackUrl = (u) => { objectUrls.push(u); return u; };
-function revokeUrls() {
-  objectUrls.forEach((u) => URL.revokeObjectURL(u));
-  objectUrls = [];
+let wallpaperObjectUrls = [];
+const trackWallpaperUrl = (u) => { wallpaperObjectUrls.push(u); return u; };
+function revokeWallpaperUrls() {
+  wallpaperObjectUrls.forEach((u) => {
+    try { URL.revokeObjectURL(u); } catch (e) {}
+  });
+  wallpaperObjectUrls = [];
 }
+
+const trackUrl = trackWallpaperUrl;
+function revokeUrls() { revokeWallpaperUrls(); }
 
 const UNSPLASH_COLLECTIONS = window.UNSPLASH_WALLPAPERS || {
   nature: [],
@@ -1568,35 +1895,7 @@ function applyUnsplashWallpaper(bump = false) {
   layer.style.backgroundImage = `url("${url}")`;
   setCredit(`Photo by ${item.author} (Unsplash)`, item.link || "https://unsplash.com");
   applyAutoClockContrast(url);
-}
-
-function loadBing() {
-  const status = $("bingStatus");
-  if (status) status.textContent = "Loading…";
-  return fetch("https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=8&mkt=en-US")
-    .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
-    .then((data) => {
-      bingImages = (data.images || []).map((im) => ({
-        url: im.url.startsWith("http") ? im.url : `https://www.bing.com${im.url}`,
-        title: im.title || "",
-        credit: (im.copyright || "").replace(/\s*\(©.*?\)\s*$/, "").trim(),
-        link: im.copyrightlink || "",
-      }));
-      if (status) {
-        status.textContent = bingImages.length
-          ? `${bingImages.length} recent wallpapers available.`
-          : "Nothing returned.";
-      }
-      return bingImages;
-    })
-    .catch(() => {
-      bingImages = [];
-      if (status) {
-        status.textContent = HAS_EXT ? "Couldn't reach Bing."
-                                     : "Bing blocks this outside the extension.";
-      }
-      return [];
-    });
+  updateThemePreview(url, item.author ? `By ${item.author}` : "Unsplash HD", "Unsplash Photo");
 }
 
 function applyWallpaper() {
@@ -1607,15 +1906,6 @@ function applyWallpaper() {
 
   if (settings.bgType === "unsplash") {
     applyUnsplashWallpaper(false);
-    return;
-  }
-
-  if (settings.bgType === "bing") {
-    if (!bingImages.length) { layer.style.backgroundImage = ""; setCredit(""); return; }
-    const im = bingImages[rotationIndex(bingImages.length)];
-    layer.style.backgroundImage = `url("${im.url}")`;
-    setCredit(im.credit || im.title, im.link);
-    applyAutoClockContrast(im.url);
     return;
   }
 
@@ -1635,19 +1925,26 @@ function applyWallpaper() {
       ? (photos.find((p) => p.id === settings.photoId) || photos[0])
       : photos[rotationIndex(photos.length)];
 
-    revokeUrls();
-    layer.style.backgroundImage = `url("${trackUrl(URL.createObjectURL(rec.blob))}")`;    
-    applyAutoClockContrast();
+    revokeWallpaperUrls();
+    let photoSrc = "";
+    if (rec.blob instanceof Blob) {
+      try {
+        photoSrc = trackWallpaperUrl(URL.createObjectURL(rec.blob));
+      } catch (e) {}
+    } else if (rec.url) {
+      photoSrc = rec.url;
+    }
+    if (photoSrc) {
+      layer.style.backgroundImage = `url("${photoSrc}")`;
+      applyAutoClockContrast(photoSrc);
+      updateThemePreview(photoSrc, rec.name || "Custom Photo", "Your Photo");
+    }
   }).catch(() => {});
 }
 
 function initWallpaper() {
-  if (settings.bgType === "bing") loadBing().then(applyWallpaper);
-  else applyWallpaper();
+  applyWallpaper();
 }
-
-
-$("bingRefresh").addEventListener("click", () => loadBing().then(applyWallpaper));
 
 bindValue("optBgRotate", "bgRotate", (v) => v, applyWallpaper);
 bindValue("optUnsplashCat", "unsplashCat", (v) => v, () => applyWallpaper());

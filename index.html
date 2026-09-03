@@ -145,64 +145,68 @@
   <div class="settings-overlay" id="settingsOverlay">
     <div class="sw" id="settingsWindow">
 
-      <div class="sw-traffic">
-        <button class="tl tl-close" id="tlClose" title="Close"></button>
-        <button class="tl tl-min" id="tlMin" title="Hide sidebar"></button>
+      <!-- Top header bar -->
+      <div class="sw-topbar">
+        <div class="sw-topbar-left">
+          <button class="sw-close-btn" id="tlClose" title="Close Settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+          <span class="sw-title-text">Settings</span>
+        </div>
+
+        <button class="sw-profile" id="swProfile" title="Edit Profile">
+          <span class="sw-avatar" id="swAvatar">?</span>
+          <span class="sw-profile-name" id="swProfileName">Set your name</span>
+        </button>
       </div>
 
-      <!-- ---------- Sidebar ---------- -->
-      <aside class="sw-sidebar" id="swSidebar">
+      <!-- Search row -->
+      <div class="sw-search-row">
         <div class="sw-search">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
           </svg>
-          <input type="text" id="settingsSearch" placeholder="Search" autocomplete="off" spellcheck="false" />
+          <input type="text" id="settingsSearch" placeholder="Search settings&hellip;" autocomplete="off" spellcheck="false" />
         </div>
+      </div>
 
-        <button class="sw-profile" id="swProfile">
-          <span class="sw-avatar" id="swAvatar">?</span>
-          <span class="sw-profile-name" id="swProfileName">Set your name</span>
+      <!-- Horizontal Navigation Tabs -->
+      <nav class="sw-nav-bar" id="swNav">
+        <button class="sw-nav-item active" data-pane="general">
+          <span class="ni" style="--ni-a:#8e8e93;--ni-b:#5a5a5f">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </span>
+          <span>General</span>
         </button>
 
-        <nav class="sw-nav" id="swNav">
-          <button class="sw-nav-item active" data-pane="general">
-            <span class="ni" style="--ni-a:#8e8e93;--ni-b:#5a5a5f">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            </span>
-            <span>General</span>
-          </button>
+        <button class="sw-nav-item" data-pane="widgets">
+          <span class="ni" style="--ni-a:#4a4a4f;--ni-b:#1c1c1e">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18"/></svg>
+          </span>
+          <span>Widgets</span>
+        </button>
 
-          <button class="sw-nav-item" data-pane="widgets">
-            <span class="ni" style="--ni-a:#4a4a4f;--ni-b:#1c1c1e">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18"/></svg>
-            </span>
-            <span>Widgets &amp; Dock</span>
-          </button>
+        <button class="sw-nav-item" data-pane="quotes">
+          <span class="ni" style="--ni-a:#c88cf5;--ni-b:#8b45e0">
+            <svg viewBox="0 0 24 24" fill="#fff"><path d="M9.2 5.4C6 6.9 3.8 10 3.8 13.6c0 3 1.9 5 4.3 5 2.2 0 3.9-1.7 3.9-3.9 0-2.1-1.5-3.7-3.5-3.7-.4 0-.9.1-1 .1.4-1.9 2.2-4.1 4.1-5.2l-2.4-.5zm9.4 0c-3.2 1.5-5.4 4.6-5.4 8.2 0 3 1.9 5 4.3 5 2.2 0 3.9-1.7 3.9-3.9 0-2.1-1.5-3.7-3.5-3.7-.4 0-.9.1-1 .1.4-1.9 2.2-4.1 4.1-5.2l-2.4-.5z"/></svg>
+          </span>
+          <span>Quotes</span>
+        </button>
 
-          <button class="sw-nav-item" data-pane="quotes">
-            <span class="ni" style="--ni-a:#c88cf5;--ni-b:#8b45e0">
-              <svg viewBox="0 0 24 24" fill="#fff"><path d="M9.2 5.4C6 6.9 3.8 10 3.8 13.6c0 3 1.9 5 4.3 5 2.2 0 3.9-1.7 3.9-3.9 0-2.1-1.5-3.7-3.5-3.7-.4 0-.9.1-1 .1.4-1.9 2.2-4.1 4.1-5.2l-2.4-.5zm9.4 0c-3.2 1.5-5.4 4.6-5.4 8.2 0 3 1.9 5 4.3 5 2.2 0 3.9-1.7 3.9-3.9 0-2.1-1.5-3.7-3.5-3.7-.4 0-.9.1-1 .1.4-1.9 2.2-4.1 4.1-5.2l-2.4-.5z"/></svg>
-            </span>
-            <span>Quotes</span>
-          </button>
+        <button class="sw-nav-item" data-pane="display">
+          <span class="ni" style="--ni-a:#5ac8fa;--ni-b:#0a84ff">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+          </span>
+          <span>Display</span>
+        </button>
 
-
-
-          <button class="sw-nav-item" data-pane="display">
-            <span class="ni" style="--ni-a:#5ac8fa;--ni-b:#0a84ff">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-            </span>
-            <span>Display</span>
-          </button>
-
-          <button class="sw-nav-item" data-pane="appearance">
-            <span class="ni" style="--ni-a:#64d2ff;--ni-b:#32ade6">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m4 17 5-4.5 4 3.5 3-2.5 4 3.5"/></svg>
-            </span>
-            <span>Appearance</span>
-          </button>
-        </nav>
-      </aside>
+        <button class="sw-nav-item" data-pane="appearance">
+          <span class="ni" style="--ni-a:#64d2ff;--ni-b:#32ade6">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m4 17 5-4.5 4 3.5 3-2.5 4 3.5"/></svg>
+          </span>
+          <span>Appearance</span>
+        </button>
+      </nav>
 
       <!-- ---------- Content ---------- -->
       <main class="sw-content" id="swContent">
@@ -477,9 +481,62 @@
           <h3 class="sw-label">Screen Mode</h3>
           <div class="sw-card pad">
             <div class="sw-tiles mode" id="modeTiles">
-              <button class="sw-tile" data-mode="system"><span class="prev mode-sys"></span><span class="cap">System</span></button>
-              <button class="sw-tile" data-mode="light"><span class="prev mode-light"></span><span class="cap">Light</span></button>
-              <button class="sw-tile" data-mode="dark"><span class="prev mode-dark"></span><span class="cap">Dark</span></button>
+              <button class="sw-tile" data-mode="system">
+                <span class="prev mode-sys">
+                  <span class="mini-light-half">
+                    <span class="mini-titlebar">
+                      <i class="mini-dot"></i><i class="mini-dot"></i><i class="mini-dot"></i>
+                    </span>
+                    <span class="mini-body">
+                      <i class="mini-sidebar"></i>
+                      <span class="mini-content">
+                        <i class="mini-card"></i>
+                      </span>
+                    </span>
+                  </span>
+                  <span class="mini-dark-half">
+                    <span class="mini-titlebar"></span>
+                    <span class="mini-body">
+                      <span class="mini-content">
+                        <i class="mini-card"></i>
+                      </span>
+                    </span>
+                  </span>
+                </span>
+                <span class="cap">System</span>
+              </button>
+
+              <button class="sw-tile" data-mode="light">
+                <span class="prev mode-light">
+                  <span class="mini-titlebar">
+                    <i class="mini-dot"></i><i class="mini-dot"></i><i class="mini-dot"></i>
+                  </span>
+                  <span class="mini-body">
+                    <i class="mini-sidebar"></i>
+                    <span class="mini-content">
+                      <i class="mini-card"></i>
+                      <i class="mini-card"></i>
+                    </span>
+                  </span>
+                </span>
+                <span class="cap">Light</span>
+              </button>
+
+              <button class="sw-tile" data-mode="dark">
+                <span class="prev mode-dark">
+                  <span class="mini-titlebar">
+                    <i class="mini-dot"></i><i class="mini-dot"></i><i class="mini-dot"></i>
+                  </span>
+                  <span class="mini-body">
+                    <i class="mini-sidebar"></i>
+                    <span class="mini-content">
+                      <i class="mini-card"></i>
+                      <i class="mini-card"></i>
+                    </span>
+                  </span>
+                </span>
+                <span class="cap">Dark</span>
+              </button>
             </div>
           </div>
 
@@ -495,38 +552,13 @@
             <div class="sw-hero-sep"></div>
 
             <div class="sw-segment small" id="bgSegment">
+              <button class="active" data-bgtype="unsplash">Unsplash</button>
               <button data-bgtype="gradient">Gradient</button>
               <button data-bgtype="solid">Solid</button>
-              <button class="active" data-bgtype="unsplash">Unsplash</button>
               <button data-bgtype="photo">Photos</button>
-              <button data-bgtype="bing">Daily</button>
             </div>
 
-            <div class="bg-tab" data-bgtype="gradient">
-              <div class="sw-row">
-                <span class="sw-row-label">Theme</span>
-                <span class="sw-dots" id="bgSwatches">
-                  <button class="dot" data-bg="green"  title="Verdant"  style="background:linear-gradient(140deg,#8ef0b8,#178a63 55%,#0b4436)"></button>
-                  <button class="dot" data-bg="blue"   title="Deep Sea" style="background:linear-gradient(140deg,#8ed0f0,#1f6fb0 55%,#0c2c52)"></button>
-                  <button class="dot" data-bg="purple" title="Nebula"   style="background:linear-gradient(140deg,#d0a5f5,#7b3fd4 55%,#33125e)"></button>
-                  <button class="dot" data-bg="sunset" title="Ember"    style="background:linear-gradient(140deg,#ffc074,#e2603f 55%,#7d1f45)"></button>
-                  <button class="dot" data-bg="rose"   title="Blossom"  style="background:linear-gradient(140deg,#ffb3cd,#e0537f 55%,#5e1440)"></button>
-                  <button class="dot" data-bg="mono"   title="Graphite" style="background:linear-gradient(140deg,#9aa4ad,#3d464e 55%,#12161a)"></button>
-                  <button class="dot" data-bg="dark"   title="Midnight" style="background:linear-gradient(140deg,#2c3550,#141a2b 55%,#05070d)"></button>
-                </span>
-              </div>
-            </div>
-
-            <div class="bg-tab" data-bgtype="solid">
-              <div class="sw-row">
-                <span class="sw-row-label">Colour</span>
-                <span class="sw-colour">
-                  <input type="color" id="optSolid" />
-                  <span id="optSolidHex">#101418</span>
-                </span>
-              </div>
-            </div>
-
+            <!-- 1. Unsplash (First) -->
             <div class="bg-tab active" data-bgtype="unsplash">
               <div class="sw-row">
                 <span class="sw-row-label">Collection</span>
@@ -545,17 +577,74 @@
               </div>
             </div>
 
-            <div class="bg-tab" data-bgtype="bing">
+            <!-- 2. Gradient (Presets + Custom Gradient) -->
+            <div class="bg-tab" data-bgtype="gradient">
               <div class="sw-row">
-                <span class="sw-row-label">Daily Wallpaper<em id="bingStatus"></em></span>
-                <button class="sw-btn grey" id="bingRefresh">Refresh</button>
+                <span class="sw-row-label">Presets</span>
+                <span class="sw-dots" id="bgSwatches">
+                  <button class="dot" data-bg="green"  title="Verdant"  style="background:linear-gradient(140deg,#8ef0b8,#178a63 55%,#0b4436)"></button>
+                  <button class="dot" data-bg="blue"   title="Deep Sea" style="background:linear-gradient(140deg,#8ed0f0,#1f6fb0 55%,#0c2c52)"></button>
+                  <button class="dot" data-bg="purple" title="Nebula"   style="background:linear-gradient(140deg,#d0a5f5,#7b3fd4 55%,#33125e)"></button>
+                  <button class="dot" data-bg="sunset" title="Ember"    style="background:linear-gradient(140deg,#ffc074,#e2603f 55%,#7d1f45)"></button>
+                  <button class="dot" data-bg="rose"   title="Blossom"  style="background:linear-gradient(140deg,#ffb3cd,#e0537f 55%,#5e1440)"></button>
+                  <button class="dot" data-bg="mono"   title="Graphite" style="background:linear-gradient(140deg,#9aa4ad,#3d464e 55%,#12161a)"></button>
+                  <button class="dot" data-bg="dark"   title="Midnight" style="background:linear-gradient(140deg,#2c3550,#141a2b 55%,#05070d)"></button>
+                </span>
+              </div>
+              <div class="sw-row">
+                <span class="sw-row-label">Custom Gradient</span>
+                <div class="sw-custom-grad">
+                  <span class="sw-grad-pickers">
+                    <input type="color" id="optGradColor1" value="#6effbb" title="Start Color" />
+                    <span class="sw-grad-arrow">&rarr;</span>
+                    <input type="color" id="optGradColor2" value="#0a6f8a" title="End Color" />
+                  </span>
+                  <button class="sw-btn blue" id="applyCustomGrad">Apply</button>
+                </div>
               </div>
             </div>
 
+            <!-- 3. Solid (Presets + Custom Picker + Recently Used) -->
+            <div class="bg-tab" data-bgtype="solid">
+              <div class="sw-row">
+                <span class="sw-row-label">Presets</span>
+                <span class="sw-dots" id="solidPresets">
+                  <button class="dot" data-solid="#0d1117" title="Obsidian" style="background:#0d1117"></button>
+                  <button class="dot" data-solid="#1b2a4a" title="Midnight Navy" style="background:#1b2a4a"></button>
+                  <button class="dot" data-solid="#144234" title="Emerald Forest" style="background:#144234"></button>
+                  <button class="dot" data-solid="#4a1e42" title="Royal Plum" style="background:#4a1e42"></button>
+                  <button class="dot" data-solid="#8c3b2b" title="Terracotta" style="background:#8c3b2b"></button>
+                  <button class="dot" data-solid="#2d3748" title="Slate Graphite" style="background:#2d3748"></button>
+                  <button class="dot" data-solid="#8a5a1f" title="Warm Amber" style="background:#8a5a1f"></button>
+                  <button class="dot" data-solid="#f1f5f9" title="Pure Snow" style="background:#f1f5f9"></button>
+                </span>
+              </div>
+              <div class="sw-row">
+                <span class="sw-row-label">Custom Colour</span>
+                <span class="sw-colour">
+                  <input type="color" id="optSolid" />
+                  <span id="optSolidHex">#101418</span>
+                </span>
+              </div>
+              <div class="sw-row" id="solidRecentRow" style="display:none">
+                <span class="sw-row-label">Recently Used</span>
+                <span class="sw-dots" id="solidRecents"></span>
+              </div>
+            </div>
+
+            <!-- 4. Photos (Upload File OR URL) -->
             <div class="bg-tab" data-bgtype="photo">
               <div class="photo-grid" id="photoGrid"></div>
-              <button class="sw-btn blue wide" id="addPhotoBtn">+ Add Photo</button>
-              <input type="file" id="photoInput" accept="image/*" hidden multiple />
+              <div class="sw-photo-actions">
+                <button class="sw-btn blue" id="addPhotoBtn">+ Upload File</button>
+                <button class="sw-btn grey" id="addPhotoUrlBtn">+ Add by URL</button>
+                <input type="file" id="photoInput" accept="image/*" hidden multiple />
+              </div>
+              <div class="sw-url-form" id="photoUrlForm" style="display:none">
+                <input type="url" class="sw-input" id="photoUrlInput" placeholder="Paste image URL (https://...)" />
+                <button class="sw-btn blue" id="photoUrlSave">Add</button>
+                <button class="sw-btn grey" id="photoUrlCancel">Cancel</button>
+              </div>
             </div>
           </div>
 
@@ -564,12 +653,12 @@
             <div class="sw-row">
               <span class="sw-row-label">Change Wallpaper</span>
               <select class="sw-select" id="optBgRotate">
-                <option value="never">Never</option>
-                <option value="tab">Every New Tab</option>
+                <option value="tab" selected>Every New Tab</option>
                 <option value="5min">Every 5 Minutes</option>
                 <option value="15min">Every 15 Minutes</option>
                 <option value="hour">Every Hour</option>
                 <option value="day">Every Day</option>
+                <option value="never">Never</option>
               </select>
             </div>
           </div>
