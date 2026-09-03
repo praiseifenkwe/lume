@@ -108,7 +108,6 @@
     <div class="clock" id="clock">
       <span id="clockHour"></span><span class="clock-colon">:</span><span id="clockMinute"></span><span class="clock-sup">
         <span class="seconds" id="clockSec"></span>
-        <span class="clock-ampm" id="clockAmpm"></span>
       </span>
     </div>
     <div class="date" id="date"></div>
@@ -202,15 +201,6 @@
             </span>
             <span>Appearance</span>
           </button>
-
-          <div class="sw-nav-sep"></div>
-
-          <button class="sw-nav-item" data-pane="about">
-            <span class="ni" style="--ni-a:#ffd60a;--ni-b:#ff9f0a">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6v.4"/></svg>
-            </span>
-            <span>About</span>
-          </button>
         </nav>
       </aside>
 
@@ -229,7 +219,7 @@
           <h3 class="sw-label">Profile</h3>
           <div class="sw-card">
             <div class="sw-row">
-              <span class="sw-row-label">Your Name<em>Used in the greeting on your new tab.</em></span>
+              <span class="sw-row-label">Your Name</span>
               <input type="text" class="sw-input" id="optName" placeholder="e.g. Praise" maxlength="24" />
             </div>
             <div class="sw-row">
@@ -246,7 +236,7 @@
           <h3 class="sw-label">Now Island</h3>
           <div class="sw-card">
             <div class="sw-row">
-              <span class="sw-row-label">Show Now Island<em>The pill at the top of the page.</em></span>
+              <span class="sw-row-label">Show Now Island</span>
               <input type="checkbox" class="sw-toggle" id="optIsland" />
             </div>
           </div>
@@ -262,15 +252,30 @@
           <h3 class="sw-label">Advanced</h3>
           <div class="sw-card">
             <div class="sw-row">
-              <span class="sw-row-label"><span class="lbl">Low Performance Mode <b class="badge">BETA</b></span><em>Stops background motion and reduces blur.</em></span>
+              <span class="sw-row-label"><span class="lbl">Low Performance Mode <b class="badge">BETA</b></span></span>
               <input type="checkbox" class="sw-toggle" id="optLowPerf" />
+            </div>
+          </div>
+
+          <h3 class="sw-label">Backup</h3>
+          <div class="sw-card">
+            <div class="sw-row">
+              <span class="sw-row-label">Export Settings</span>
+              <button class="sw-btn grey" id="exportBtn">Export</button>
+            </div>
+            <div class="sw-row">
+              <span class="sw-row-label">Import Settings</span>
+              <span class="sw-btn-group">
+                <button class="sw-btn blue" id="importBtn">Import</button>
+                <input type="file" id="importInput" accept="application/json" hidden />
+              </span>
             </div>
           </div>
 
           <h3 class="sw-label danger">Reset</h3>
           <div class="sw-card">
             <div class="sw-row">
-              <span class="sw-row-label">Reset All Settings<em>Restores every option, theme and shortcut to default.</em></span>
+              <span class="sw-row-label">Reset All Settings</span>
               <button class="sw-btn red" id="resetAll">Reset</button>
             </div>
           </div>
@@ -294,11 +299,11 @@
             <h3 class="sw-label">Layout</h3>
             <div class="sw-card">
               <div class="sw-row">
-                <span class="sw-row-label">Grid Snapping<em>Drag a widget by its header or background &mdash; it snaps to a 20px grid.</em></span>
+                <span class="sw-row-label">Grid Snapping</span>
                 <input type="checkbox" class="sw-toggle" id="optSnap" />
               </div>
               <div class="sw-row">
-                <span class="sw-row-label">Reset Widget Positions<em>Restore widgets to their original places.</em></span>
+                <span class="sw-row-label">Reset Widget Positions</span>
                 <button class="sw-btn grey" id="resetPositions">Reset</button>
               </div>
             </div>
@@ -347,13 +352,12 @@
                   <option value="fahrenheit">Fahrenheit</option>
                 </select>
               </div>
-              <div class="sw-note">Weather data provided by <b>Open-Meteo</b>. City search by <b>Open-Meteo Geocoding</b>.</div>
             </div>
 
             <h3 class="sw-label danger">Danger Zone</h3>
             <div class="sw-card">
               <div class="sw-row">
-                <span class="sw-row-label">Reset Widget Settings<em>Show every widget again with default options.</em></span>
+                <span class="sw-row-label">Reset Widget Settings</span>
                 <button class="sw-btn red" id="resetWidgets">Reset</button>
               </div>
             </div>
@@ -366,7 +370,7 @@
             <h3 class="sw-label">Maintenance</h3>
             <div class="sw-card">
               <div class="sw-row">
-                <span class="sw-row-label">Reset Dock Settings<em>Restores the five default shortcuts.</em></span>
+                <span class="sw-row-label">Reset Dock Settings</span>
                 <button class="sw-btn red" id="resetDock">Reset</button>
               </div>
             </div>
@@ -395,15 +399,15 @@
           <div class="sw-card">
             <div class="sw-row"><span class="sw-row-label">Show Quote Widget</span><input type="checkbox" class="sw-toggle" id="optQuote2" /></div>
             <div class="sw-row">
-              <span class="sw-row-label">New Quote<em>How often the quote changes.</em></span>
+              <span class="sw-row-label">New Quote</span>
               <select class="sw-select" id="optQuoteRotate">
-                <option value="tab">Every New Tab</option>
+                <option value="tab" selected>Every New Tab</option>
                 <option value="hour">Every Hour</option>
                 <option value="day">Every Day</option>
               </select>
             </div>
             <div class="sw-row">
-              <span class="sw-row-label">Pool Size<em>Quotes currently available to draw from.</em></span>
+              <span class="sw-row-label">Pool Size</span>
               <span class="sw-value" id="quotePoolSize">0</span>
             </div>
           </div>
@@ -430,9 +434,9 @@
           <h3 class="sw-label">Interface Size</h3>
           <div class="sw-card pad">
             <div class="sw-tiles" id="scaleTiles">
-              <button class="sw-tile" data-scale="larger"><span class="prev p-lg"><i></i><i></i><i></i></span><span class="cap">Larger Text</span></button>
+              <button class="sw-tile active" data-scale="larger"><span class="prev p-lg"><i></i><i></i><i></i></span><span class="cap">Larger Text</span></button>
               <button class="sw-tile" data-scale="medium"><span class="prev p-md"><i></i><i></i><i></i><i></i></span><span class="cap">Medium Text</span></button>
-              <button class="sw-tile active" data-scale="default"><span class="prev p-df"><i></i><i></i><i></i><i></i><i></i></span><span class="cap">Default</span></button>
+              <button class="sw-tile" data-scale="default"><span class="prev p-df"><i></i><i></i><i></i><i></i><i></i></span><span class="cap">Default</span></button>
               <button class="sw-tile" data-scale="more"><span class="prev p-sm"><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="cap">More Space</span></button>
             </div>
           </div>
@@ -491,14 +495,14 @@
             <div class="sw-hero-sep"></div>
 
             <div class="sw-segment small" id="bgSegment">
-              <button class="active" data-bgtype="gradient">Gradient</button>
+              <button data-bgtype="gradient">Gradient</button>
               <button data-bgtype="solid">Solid</button>
-              <button data-bgtype="unsplash">Unsplash</button>
+              <button class="active" data-bgtype="unsplash">Unsplash</button>
               <button data-bgtype="photo">Photos</button>
               <button data-bgtype="bing">Daily</button>
             </div>
 
-            <div class="bg-tab active" data-bgtype="gradient">
+            <div class="bg-tab" data-bgtype="gradient">
               <div class="sw-row">
                 <span class="sw-row-label">Theme</span>
                 <span class="sw-dots" id="bgSwatches">
@@ -523,9 +527,9 @@
               </div>
             </div>
 
-            <div class="bg-tab" data-bgtype="unsplash">
+            <div class="bg-tab active" data-bgtype="unsplash">
               <div class="sw-row">
-                <span class="sw-row-label">Collection<em>Curated high-res photos.</em></span>
+                <span class="sw-row-label">Collection</span>
                 <select class="sw-select" id="optUnsplashCat">
                   <option value="all">All / Curated Random</option>
                   <option value="nature">Nature &amp; Landscapes</option>
@@ -536,32 +540,29 @@
                 </select>
               </div>
               <div class="sw-row">
-                <span class="sw-row-label">Curated Wallpaper<em id="unsplashStatus">High-definition photography from Unsplash.</em></span>
+                <span class="sw-row-label">Curated Wallpaper</span>
                 <button class="sw-btn blue" id="unsplashNext">Next Photo</button>
               </div>
-              <div class="sw-note">Free high-resolution photos provided by <b>Unsplash</b>.</div>
             </div>
 
             <div class="bg-tab" data-bgtype="bing">
               <div class="sw-row">
-                <span class="sw-row-label">Daily Wallpaper<em id="bingStatus">Bing's curated photo of the day.</em></span>
+                <span class="sw-row-label">Daily Wallpaper<em id="bingStatus"></em></span>
                 <button class="sw-btn grey" id="bingRefresh">Refresh</button>
               </div>
-              <div class="sw-note">Fetched from <b>Bing</b>. No account or API key needed.</div>
             </div>
 
             <div class="bg-tab" data-bgtype="photo">
               <div class="photo-grid" id="photoGrid"></div>
               <button class="sw-btn blue wide" id="addPhotoBtn">+ Add Photo</button>
               <input type="file" id="photoInput" accept="image/*" hidden multiple />
-              <div class="sw-note">Photos are stored in this browser only and never uploaded.</div>
             </div>
           </div>
 
           <h3 class="sw-label">Rotation</h3>
           <div class="sw-card">
             <div class="sw-row">
-              <span class="sw-row-label">Change Wallpaper<em>Applies to Unsplash, Daily &amp; Photos.</em></span>
+              <span class="sw-row-label">Change Wallpaper</span>
               <select class="sw-select" id="optBgRotate">
                 <option value="never">Never</option>
                 <option value="tab">Every New Tab</option>
@@ -588,58 +589,7 @@
           </div>
         </section>
 
-        <!-- ============ About ============ -->
-        <section class="sw-pane" data-pane="about">
-          <header class="sw-title">
-            <span class="ni lg" style="--ni-a:#ffd60a;--ni-b:#ff9f0a">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6v.4"/></svg>
-            </span>
-            <h1>About</h1>
-          </header>
 
-          <div class="sw-card">
-            <div class="sw-row"><span class="sw-row-label">Liquid Tab</span><span class="sw-value" id="aboutVersion">3.0</span></div>
-            <div class="sw-row"><span class="sw-row-label">Photos Stored</span><span class="sw-value" id="aboutPhotos">0</span></div>
-            <div class="sw-row"><span class="sw-row-label">Quotes Available</span><span class="sw-value" id="aboutQuotes">0</span></div>
-          </div>
-
-          <h3 class="sw-label">Data Sources</h3>
-          <div class="sw-card">
-            <a class="sw-row link" href="https://open-meteo.com" target="_blank" rel="noopener">
-              <span class="sw-row-label">Open-Meteo<em>Weather forecasts</em></span>
-              <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></span>
-            </a>
-            <a class="sw-row link" href="https://www.bing.com" target="_blank" rel="noopener">
-              <span class="sw-row-label">Bing<em>Daily wallpaper</em></span>
-              <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></span>
-            </a>
-
-          </div>
-
-          <h3 class="sw-label">Backup</h3>
-          <div class="sw-card">
-            <div class="sw-row">
-              <span class="sw-row-label">Export Settings<em>Save your setup as a JSON file to share.</em></span>
-              <button class="sw-btn grey" id="exportBtn">Export</button>
-            </div>
-            <div class="sw-row">
-              <span class="sw-row-label">Import Settings<em>Load a setup exported from Liquid Tab.</em></span>
-              <span class="sw-btn-group">
-                <button class="sw-btn blue" id="importBtn">Import</button>
-                <input type="file" id="importInput" accept="application/json" hidden />
-              </span>
-            </div>
-          </div>
-
-          <h3 class="sw-label">Keyboard Shortcuts</h3>
-          <div class="sw-card">
-            <div class="sw-row"><span class="sw-row-label">Focus search</span><span class="sw-value"><kbd>/</kbd></span></div>
-            <div class="sw-row"><span class="sw-row-label">Open settings</span><span class="sw-value"><kbd>Ctrl</kbd><kbd>,</kbd></span></div>
-            <div class="sw-row"><span class="sw-row-label">Close settings</span><span class="sw-value"><kbd>Esc</kbd></span></div>
-          </div>
-
-          <div class="sw-note center">Your quotes, photos, shortcuts and settings never leave this browser.</div>
-        </section>
 
         <!-- ============ Search results ============ -->
         <section class="sw-pane" data-pane="results">

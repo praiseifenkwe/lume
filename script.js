@@ -46,14 +46,14 @@ const DEFAULTS = {
   showIsland: true, islandCycle: true,
   showClock: true, showDate: true, use24hr: true, showSeconds: true,
   showSearch: true, engine: "google",
-  showQuote: true, quoteSource: "builtin", quoteRotate: "day", quoteCats: [...ALL_CATS],
+  showQuote: true, quoteSource: "builtin", quoteRotate: "tab", quoteCats: [...ALL_CATS],
   showWeather: true, unit: "celsius", manualLocation: null,
   mode: "dark",
-  bg: "green", bgType: "gradient", solidColor: "#101418", photoId: null,
+  bg: "green", bgType: "unsplash", solidColor: "#101418", photoId: null,
   unsplashCat: "all",
   bgRotate: "never", depth: false, parallax: true,
   tint: 20, blur: 10, grain: true,
-  scale: "default", clockFont: "default", clockColor: "dark", clockCustomColor: "#ffffff",
+  scale: "larger", clockFont: "default", clockColor: "dark", clockCustomColor: "#ffffff",
   snap: true, positions: {},
   lowPerf: false,
 };
@@ -119,6 +119,17 @@ function loadState() {
     }
     if (settings.clockColor === "auto") {
       settings.clockColor = "dark";
+      saveSettings();
+    }
+    if (!settings.defaultScaleUpgraded) {
+      settings.scale = "larger";
+      settings.bgType = "unsplash";
+      settings.defaultScaleUpgraded = true;
+      saveSettings();
+    }
+    if (!settings.defaultQuoteRotateUpgraded) {
+      settings.quoteRotate = "tab";
+      settings.defaultQuoteRotateUpgraded = true;
       saveSettings();
     }
     if (Array.isArray(result.shortcuts)) {
@@ -306,20 +317,15 @@ function greetingText() {
 function updateClock() {
   const now = new Date();
   let h = now.getHours();
-  let ampm = "";
 
   if (!settings.use24hr) {
-    ampm = h >= 12 ? "PM" : "AM";
+    // 12-hour clock: 1 to 12
     h = h % 12 || 12;
-    $("clockHour").textContent = String(h);
-  } else {
-    $("clockHour").textContent = String(h).padStart(2, "0");
   }
-
+  // 24-hour clock: 00 to 23
+  $("clockHour").textContent = String(h).padStart(2, "0");
   $("clockMinute").textContent = String(now.getMinutes()).padStart(2, "0");
   $("clockSec").textContent = settings.showSeconds ? String(now.getSeconds()).padStart(2, "0") : "";
-  const ampmEl = $("clockAmpm");
-  if (ampmEl) ampmEl.textContent = ampm;
   $("date").textContent = now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
 }
 setInterval(updateClock, 1000);
@@ -602,7 +608,8 @@ function refreshPhotoGrid() {
   allPhotos().then((photos) => {
     const grid = $("photoGrid");
     grid.innerHTML = "";
-    $("aboutPhotos").textContent = String(photos.length);
+    const ap = $("aboutPhotos");
+    if (ap) ap.textContent = String(photos.length);
 
     photos.forEach((rec) => {
       const b = document.createElement("button");
@@ -1167,7 +1174,7 @@ $("importInput").addEventListener("change", (e) => {
 // ============================================================
 const PANE_TITLES = {
   general: "General", widgets: "Widgets & Dock", quotes: "Quotes",
-  display: "Display", appearance: "Appearance", about: "About",
+  display: "Display", appearance: "Appearance",
 };
 
 let searchIndex = [];

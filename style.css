@@ -305,18 +305,6 @@ body.preload, body.preload * {
 }
 .seconds:empty { display: none; }
 
-.clock-ampm {
-  font-size: .28em;
-  font-weight: 800;
-  color: inherit;
-  opacity: .65;
-  letter-spacing: .04em;
-  line-height: 1;
-  text-transform: uppercase;
-  margin-top: .20em;
-}
-.clock-ampm:empty { display: none; }
-
 .date {
   margin-top: 18px;
   font-size: 28px; font-weight: 600;
