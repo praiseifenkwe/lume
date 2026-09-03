@@ -36,10 +36,10 @@
     }
 
     const cachedBg = localStorage.getItem("liquidtab_cached_bg");
-    if (cachedBg) {
+    if (cachedBg && (bgType === "unsplash" || bgType === "photo")) {
       const style = document.createElement("style");
       style.id = "earlyBgStyle";
-      style.textContent = `.photo-layer { background-image: url("${cachedBg}") !important; opacity: 1 !important; }`;
+      style.textContent = `.photo-layer { background-image: url("${cachedBg}"); }`;
       document.head.appendChild(style);
     }
   } catch(e) {}

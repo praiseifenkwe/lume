@@ -5,6 +5,12 @@
 const $  = (id) => document.getElementById(id);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
+const cleanEarlyBgStyle = () => {
+  const el = document.getElementById("earlyBgStyle");
+  if (el) el.remove();
+};
+cleanEarlyBgStyle();
+
 // Outside an installed extension (e.g. opening index.html directly) the
 // chrome.* APIs are absent — fall back to localStorage so the page still runs.
 const HAS_EXT = typeof chrome !== "undefined" && !!chrome.storage;
@@ -183,7 +189,6 @@ function loadState() {
     layoutWidgets();
     initWeather();
     refreshPhotoGrid();
-    initWallpaper();
     requestAnimationFrame(() => {
       document.body.classList.remove("preload");
     });
@@ -299,6 +304,7 @@ function updateThemePreview(activeUrl, activeTitle, activeKind) {
 // Apply settings
 // ============================================================
 function applySettings() {
+  cleanEarlyBgStyle();
   const body = document.body;
   const theme = THEMES[settings.bg] ? settings.bg : "green";
 
@@ -1317,16 +1323,15 @@ $("applyCustomGrad")?.addEventListener("click", () => {
   applyWallpaper();
 });
 
-$("optGradColor1")?.addEventListener("change", () => {
+const triggerGradUpdate = () => {
   if (settings.bg === "custom" && settings.bgType === "gradient") {
     $("applyCustomGrad")?.click();
   }
-});
-$("optGradColor2")?.addEventListener("change", () => {
-  if (settings.bg === "custom" && settings.bgType === "gradient") {
-    $("applyCustomGrad")?.click();
-  }
-});
+};
+$("optGradColor1")?.addEventListener("input", triggerGradUpdate);
+$("optGradColor1")?.addEventListener("change", triggerGradUpdate);
+$("optGradColor2")?.addEventListener("input", triggerGradUpdate);
+$("optGradColor2")?.addEventListener("change", triggerGradUpdate);
 
 $("addPhotoUrlBtn")?.addEventListener("click", () => {
   const form = $("photoUrlForm");
@@ -1695,8 +1700,9 @@ function newQuote(animate = true) {
     }
     const idx = (hashString(rotationSeed(settings.quoteRotate)) + quoteOffset) % pool.length;
     const [text, author, cat] = pool[idx];
-    $("quoteText").textContent = text;
-    $("quoteAuthor").textContent = author || "Unknown";
+    const cleanText = (text || "").trim().replace(/^["“](.*)["”]$/, "$1");
+    $("quoteText").textContent = cleanText ? `“${cleanText}”` : "";
+    $("quoteAuthor").textContent = author ? `— ${author.replace(/^[—–-]\s*/, "")}` : "";
     $("quoteCat").textContent = cat === "mine" ? "Mine" : (QUOTE_CATEGORIES[cat] || "");
   };
 
@@ -1928,8 +1934,8 @@ function applyUnsplashWallpaper(bump = false) {
     return;
   }
 
-  // If a background is already visible, preload the new image and crossfade seamlessly
-  if (layerNext && (currentBg || localStorage.getItem("liquidtab_cached_bg"))) {
+  // If user explicitly requested next photo, preload and crossfade
+  if (bump && layerNext && currentBg) {
     const preloader = new Image();
     preloader.onload = () => {
       layerNext.style.backgroundImage = `url("${url}")`;
@@ -1948,12 +1954,26 @@ function applyUnsplashWallpaper(bump = false) {
     preloader.onerror = () => revealApp();
     preloader.src = url;
   } else {
-    layer.style.backgroundImage = `url("${url}")`;
-    try { localStorage.setItem("liquidtab_cached_bg", url); } catch (e) {}
-    setCredit(`Photo by ${item.author} (Unsplash)`, item.link || "https://unsplash.com");
-    applyAutoClockContrast(url);
-    updateThemePreview(url, item.author ? `By ${item.author}` : "Unsplash HD", "Unsplash Photo");
-    revealApp();
+    // Normal page load: keep loading screen up until image is 100% fetched and ready
+    const preloader = new Image();
+    preloader.onload = () => {
+      layer.style.backgroundImage = `url("${url}")`;
+      try { localStorage.setItem("liquidtab_cached_bg", url); } catch (e) {}
+      setCredit(`Photo by ${item.author} (Unsplash)`, item.link || "https://unsplash.com");
+      applyAutoClockContrast(url);
+      updateThemePreview(url, item.author ? `By ${item.author}` : "Unsplash HD", "Unsplash Photo");
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          revealApp();
+        });
+      });
+    };
+    preloader.onerror = () => {
+      const cached = localStorage.getItem("liquidtab_cached_bg");
+      if (cached) layer.style.backgroundImage = `url("${cached}")`;
+      revealApp();
+    };
+    preloader.src = url;
   }
 }
 
@@ -1963,6 +1983,8 @@ function applyWallpaper() {
 
   setupBgRotateTimer();
 
+  cleanEarlyBgStyle();
+
   if (settings.bgType === "unsplash") {
     applyUnsplashWallpaper(false);
     return;
@@ -1970,6 +1992,11 @@ function applyWallpaper() {
 
   if (settings.bgType !== "photo") {
     layer.style.backgroundImage = "";
+    const layerNext = $("photoLayerNext");
+    if (layerNext) {
+      layerNext.style.backgroundImage = "";
+      layerNext.style.opacity = "0";
+    }
     setCredit("");
     revealApp();
     return;
@@ -1996,11 +2023,17 @@ function applyWallpaper() {
       photoSrc = rec.url;
     }
     if (photoSrc) {
-      layer.style.backgroundImage = `url("${photoSrc}")`;
-      applyAutoClockContrast(photoSrc);
-      updateThemePreview(photoSrc, rec.name || "Custom Photo", "Your Photo");
+      const img = new Image();
+      img.onload = img.onerror = () => {
+        layer.style.backgroundImage = `url("${photoSrc}")`;
+        applyAutoClockContrast(photoSrc);
+        updateThemePreview(photoSrc, rec.name || "Custom Photo", "Your Photo");
+        requestAnimationFrame(revealApp);
+      };
+      img.src = photoSrc;
+    } else {
+      revealApp();
     }
-    revealApp();
   }).catch(() => revealApp());
 }
 
@@ -2019,14 +2052,13 @@ function revealApp() {
 
 function initWallpaper() {
   applyWallpaper();
-  const cached = localStorage.getItem("liquidtab_cached_bg");
-  if (settings.bgType === "solid" || settings.bgType === "gradient" || cached) {
+  if (settings.bgType === "solid" || settings.bgType === "gradient") {
     requestAnimationFrame(() => {
       setTimeout(revealApp, 40);
     });
   }
-  // Safety timeout: reveal in max 350ms under all conditions
-  setTimeout(revealApp, 350);
+  // Safety timeout only if network completely drops (5 seconds max)
+  setTimeout(revealApp, 5000);
 }
 
 bindValue("optBgRotate", "bgRotate", (v) => v, applyWallpaper);
