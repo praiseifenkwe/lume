@@ -7,45 +7,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Outfit:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet" />
-  <script>
-    (function() {
-      try {
-        const raw = localStorage.getItem("liquidtab_cached_settings") || localStorage.getItem("liquidtab:settings");
-        if (raw) {
-          const s = JSON.parse(raw);
-          const doc = document.documentElement;
-          if (s.bg) doc.dataset.theme = s.bg;
-          const isDark = s.mode === "light" ? false : s.mode === "dark" ? true : window.matchMedia("(prefers-color-scheme: dark)").matches;
-          doc.dataset.mode = isDark ? "dark" : "light";
-          if (s.bgType) doc.dataset.bgtype = s.bgType;
-          if (s.scale) doc.dataset.scale = s.scale;
-          if (s.clockFont) doc.dataset.clockFont = s.clockFont;
-          if (s.clockColor) doc.dataset.clockColor = s.clockColor;
-        }
-      } catch(e) {}
-    })();
-  </script>
+  <script src="early.js"></script>
 </head>
-<body class="preload">
-  <script>
-    (function() {
-      try {
-        const raw = localStorage.getItem("liquidtab_cached_settings") || localStorage.getItem("liquidtab:settings");
-        const b = document.body;
-        if (raw) {
-          const s = JSON.parse(raw);
-          b.dataset.theme = s.bg || "green";
-          const isDark = s.mode === "light" ? false : s.mode === "dark" ? true : window.matchMedia("(prefers-color-scheme: dark)").matches;
-          b.dataset.mode = isDark ? "dark" : "light";
-          if (s.bgType) b.dataset.bgtype = s.bgType;
-          if (s.scale) b.dataset.scale = s.scale;
-          if (s.clockFont) b.dataset.clockFont = s.clockFont;
-          if (s.clockColor) b.dataset.clockColor = s.clockColor;
-          if (s.solidColor && s.bgType === "solid") b.style.setProperty("--base", s.solidColor);
-        }
-      } catch(e) {}
-    })();
-  </script>
+<body data-theme="green" data-mode="dark" data-bgtype="unsplash" data-scale="larger" data-clock-font="default" data-clock-color="dark">
+  <div class="app-curtain" id="appCurtain">
+    <div class="app-curtain-spinner"></div>
+  </div>
 
   <!-- ============ Background ============ -->
   <div class="bg" id="bg">
@@ -54,6 +21,7 @@
     <div class="orb orb-3"></div>
     <div class="orb orb-4"></div>
     <div class="photo-layer" id="photoLayer"></div>
+    <div class="photo-layer next" id="photoLayerNext"></div>
     <div class="grain" id="grain"></div>
     <div class="vignette" id="vignette"></div>
   </div>

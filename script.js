@@ -85,12 +85,17 @@ const GOOGLE_MARK = `<svg viewBox="0 0 24 24">
 </svg>`;
 const GLASS_MARK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>`;
 
-// Synchronously prime settings from localStorage cache to prevent flash
+// Synchronously prime settings and shortcuts from localStorage cache to prevent flash
 try {
   const cached = localStorage.getItem("liquidtab_cached_settings") || localStorage.getItem("liquidtab:settings");
   if (cached) {
     const s = JSON.parse(cached);
     settings = { ...DEFAULTS, ...s };
+  }
+  const cachedShortcuts = localStorage.getItem("liquidtab_cached_shortcuts");
+  if (cachedShortcuts) {
+    const sc = JSON.parse(cachedShortcuts);
+    if (Array.isArray(sc) && sc.length) SHORTCUTS = sc;
   }
 } catch(e) {}
 
@@ -101,7 +106,10 @@ const saveSettings  = () => {
   chrome.storage.local.set({ settings });
   try { localStorage.setItem("liquidtab_cached_settings", JSON.stringify(settings)); } catch(e) {}
 };
-const saveShortcuts = () => chrome.storage.local.set({ shortcuts: SHORTCUTS });
+const saveShortcuts = () => {
+  chrome.storage.local.set({ shortcuts: SHORTCUTS });
+  try { localStorage.setItem("liquidtab_cached_shortcuts", JSON.stringify(SHORTCUTS)); } catch(e) {}
+};
 const saveMyQuotes  = () => chrome.storage.local.set({ myQuotes: MY_QUOTES });
 
 function loadState() {
@@ -650,14 +658,14 @@ function initWeather() {
   }
 
   let resolved = false;
-  const tryIpFallback = () => {
+  const tryIpWhoFallback = () => {
     if (resolved) return;
-    fetch("https://ipapi.co/json/")
+    fetch("https://ipwho.is/")
       .then((r) => r.json())
       .then((data) => {
         if (resolved) return;
-        resolved = true;
         if (data.latitude && data.longitude) {
+          resolved = true;
           loadWeather(data.latitude, data.longitude);
         } else {
           promptForLocation();
@@ -666,6 +674,22 @@ function initWeather() {
       .catch(() => {
         if (!resolved) promptForLocation();
       });
+  };
+
+  const tryIpFallback = () => {
+    if (resolved) return;
+    fetch("https://ipapi.co/json/")
+      .then((r) => r.json())
+      .then((data) => {
+        if (resolved) return;
+        if (data.latitude && data.longitude) {
+          resolved = true;
+          loadWeather(data.latitude, data.longitude);
+        } else {
+          tryIpWhoFallback();
+        }
+      })
+      .catch(tryIpWhoFallback);
   };
 
   if (!navigator.geolocation) {
@@ -1020,18 +1044,21 @@ window.addEventListener("resize", () => {
 // ============================================================
 // Dock
 // ============================================================
-const BUILTIN_ICONS = {};
-// All icons fetched from Google's favicon service for pixel-perfect accuracy
+const BUILTIN_LOCAL_ICONS = {
+  "google.com": "icons/google.png",
+  "youtube.com": "icons/youtube.png",
+  "mail.google.com": "icons/gmail.png",
+  "drive.google.com": "icons/drive.png",
+};
 
 function getBuiltinIcon(url) {
   try {
     const u = url.toLowerCase();
     const host = new URL(url).hostname.replace(/^www\./, "").toLowerCase();
-    if (host === "github.com" || u.includes("github.com")) return BUILTIN_ICONS["github.com"];
-    if (host === "mail.google.com" || u.includes("mail.google.com") || u.includes("gmail.com")) return BUILTIN_ICONS["mail.google.com"];
-    if (host === "drive.google.com" || u.includes("drive.google.com")) return BUILTIN_ICONS["drive.google.com"];
-    if (host === "youtube.com" || u.includes("youtube.com") || u.includes("youtu.be")) return BUILTIN_ICONS["youtube.com"];
-    if (host === "google.com" || host.endsWith(".google.com")) return BUILTIN_ICONS["google.com"];
+    if (host === "drive.google.com" || u.includes("drive.google.com")) return BUILTIN_LOCAL_ICONS["drive.google.com"];
+    if (host === "mail.google.com" || u.includes("mail.google.com") || u.includes("gmail.com")) return BUILTIN_LOCAL_ICONS["mail.google.com"];
+    if (host === "youtube.com" || u.includes("youtube.com") || u.includes("youtu.be")) return BUILTIN_LOCAL_ICONS["youtube.com"];
+    if (host === "google.com" || host.endsWith(".google.com")) return BUILTIN_LOCAL_ICONS["google.com"];
   } catch {}
   return null;
 }
@@ -1050,22 +1077,18 @@ function renderShortcuts() {
     a.href = s.url;
     a.dataset.label = s.name || s.url;
 
-    const builtinSvg = getBuiltinIcon(s.url);
-    if (builtinSvg) {
-      a.innerHTML = builtinSvg;
-    } else {
-      const img = document.createElement("img");
-      img.src = faviconFor(s.url);
-      img.alt = s.name;
-      img.onerror = () => {
-        const fb = document.createElement("span");
-        fb.className = "fallback";
-        fb.textContent = ((s.name || "?").trim()[0] || "?").toUpperCase();
-        fb.style.background = FALLBACK_COLORS[i % FALLBACK_COLORS.length];
-        img.replaceWith(fb);
-      };
-      a.appendChild(img);
-    }
+    const localIcon = getBuiltinIcon(s.url);
+    const img = document.createElement("img");
+    img.src = localIcon || faviconFor(s.url);
+    img.alt = s.name || "";
+    img.onerror = () => {
+      const fb = document.createElement("span");
+      fb.className = "fallback";
+      fb.textContent = ((s.name || "?").trim()[0] || "?").toUpperCase();
+      fb.style.background = FALLBACK_COLORS[i % FALLBACK_COLORS.length];
+      img.replaceWith(fb);
+    };
+    a.appendChild(img);
 
     dock.insertBefore(a, divider);
   });
@@ -1089,7 +1112,8 @@ function renderShortcutList() {
     row.className = "sc-row";
 
     const img = document.createElement("img");
-    img.src = faviconFor(s.url, 32);
+    const localIcon = getBuiltinIcon(s.url);
+    img.src = localIcon || faviconFor(s.url, 32);
     img.alt = "";
     img.onerror = () => {
       const fb = document.createElement("span");
@@ -1881,6 +1905,7 @@ function setCredit(text, url) {
 
 function applyUnsplashWallpaper(bump = false) {
   const layer = $("photoLayer");
+  const layerNext = $("photoLayerNext");
   if (!layer) return;
   const pool = UNSPLASH_COLLECTIONS[settings.unsplashCat] || UNSPLASH_COLLECTIONS.all;
   if (!pool || !pool.length) return;
@@ -1892,10 +1917,44 @@ function applyUnsplashWallpaper(bump = false) {
   const item = pool[idx];
   const url = `https://images.unsplash.com/${item.id}?auto=format&fit=crop&w=2560&q=85`;
 
-  layer.style.backgroundImage = `url("${url}")`;
-  setCredit(`Photo by ${item.author} (Unsplash)`, item.link || "https://unsplash.com");
-  applyAutoClockContrast(url);
-  updateThemePreview(url, item.author ? `By ${item.author}` : "Unsplash HD", "Unsplash Photo");
+  const currentBg = layer.style.backgroundImage || "";
+  const isAlreadySet = currentBg.includes(item.id);
+
+  if (isAlreadySet) {
+    setCredit(`Photo by ${item.author} (Unsplash)`, item.link || "https://unsplash.com");
+    applyAutoClockContrast(url);
+    updateThemePreview(url, item.author ? `By ${item.author}` : "Unsplash HD", "Unsplash Photo");
+    revealApp();
+    return;
+  }
+
+  // If a background is already visible, preload the new image and crossfade seamlessly
+  if (layerNext && (currentBg || localStorage.getItem("liquidtab_cached_bg"))) {
+    const preloader = new Image();
+    preloader.onload = () => {
+      layerNext.style.backgroundImage = `url("${url}")`;
+      layerNext.style.opacity = "1";
+      try { localStorage.setItem("liquidtab_cached_bg", url); } catch (e) {}
+      setCredit(`Photo by ${item.author} (Unsplash)`, item.link || "https://unsplash.com");
+      applyAutoClockContrast(url);
+      updateThemePreview(url, item.author ? `By ${item.author}` : "Unsplash HD", "Unsplash Photo");
+      revealApp();
+
+      setTimeout(() => {
+        layer.style.backgroundImage = `url("${url}")`;
+        layerNext.style.opacity = "0";
+      }, 520);
+    };
+    preloader.onerror = () => revealApp();
+    preloader.src = url;
+  } else {
+    layer.style.backgroundImage = `url("${url}")`;
+    try { localStorage.setItem("liquidtab_cached_bg", url); } catch (e) {}
+    setCredit(`Photo by ${item.author} (Unsplash)`, item.link || "https://unsplash.com");
+    applyAutoClockContrast(url);
+    updateThemePreview(url, item.author ? `By ${item.author}` : "Unsplash HD", "Unsplash Photo");
+    revealApp();
+  }
 }
 
 function applyWallpaper() {
@@ -1912,6 +1971,7 @@ function applyWallpaper() {
   if (settings.bgType !== "photo") {
     layer.style.backgroundImage = "";
     setCredit("");
+    revealApp();
     return;
   }
 
@@ -1919,6 +1979,7 @@ function applyWallpaper() {
   allPhotos().then((photos) => {
     if (!photos.length) {
       layer.style.backgroundImage = "";
+      revealApp();
       return;
     }
     const rec = settings.bgRotate === "never"
@@ -1939,11 +2000,33 @@ function applyWallpaper() {
       applyAutoClockContrast(photoSrc);
       updateThemePreview(photoSrc, rec.name || "Custom Photo", "Your Photo");
     }
-  }).catch(() => {});
+    revealApp();
+  }).catch(() => revealApp());
+}
+
+let appRevealed = false;
+function revealApp() {
+  if (appRevealed) return;
+  appRevealed = true;
+  requestAnimationFrame(() => {
+    const curtain = $("appCurtain");
+    if (curtain) {
+      curtain.classList.add("loaded");
+      setTimeout(() => { curtain.style.display = "none"; }, 320);
+    }
+  });
 }
 
 function initWallpaper() {
   applyWallpaper();
+  const cached = localStorage.getItem("liquidtab_cached_bg");
+  if (settings.bgType === "solid" || settings.bgType === "gradient" || cached) {
+    requestAnimationFrame(() => {
+      setTimeout(revealApp, 40);
+    });
+  }
+  // Safety timeout: reveal in max 350ms under all conditions
+  setTimeout(revealApp, 350);
 }
 
 bindValue("optBgRotate", "bgRotate", (v) => v, applyWallpaper);
@@ -2182,8 +2265,15 @@ $("weatherEmptyCta").addEventListener("click", (e) => {
 });
 
 // ============================================================
-// Boot
+// Instant Synchronous Boot (Zero Flash, Zero Lag)
 // ============================================================
+applySettings();
 updateClock();
+renderShortcuts();
+layoutWidgets();
+newQuote(false);
+initWallpaper();
+
+// Asynchronous background sync
 loadState();
 restartIslandTimer();
