@@ -48,13 +48,12 @@ const DEFAULTS = {
   showSearch: true, engine: "google",
   showQuote: true, quoteSource: "builtin", quoteRotate: "day", quoteCats: [...ALL_CATS],
   showWeather: true, unit: "celsius", manualLocation: null,
-  showCalendar: false,
   mode: "dark",
   bg: "green", bgType: "gradient", solidColor: "#101418", photoId: null,
   unsplashCat: "all",
   bgRotate: "never", depth: false, parallax: true,
-  tint: 10, blur: 10, grain: true,
-  scale: "default", clockFont: "default", clockColor: "auto", clockCustomColor: "#ffffff",
+  tint: 20, blur: 10, grain: true,
+  scale: "default", clockFont: "default", clockColor: "dark", clockCustomColor: "#ffffff",
   snap: true, positions: {},
   lowPerf: false,
 };
@@ -108,12 +107,27 @@ function loadState() {
     if (result.settings) settings = { ...DEFAULTS, ...result.settings };
     if (!settings.layoutPreset) {
       settings.showQuote = true;
-      settings.showCalendar = false;
       settings.positions = {};
       settings.layoutPreset = "clean-default";
+      settings.tint = 20;
+      settings.clockColor = "dark";
       saveSettings();
     }
-    if (Array.isArray(result.shortcuts)) SHORTCUTS = result.shortcuts;
+    if (settings.tint === 10) {
+      settings.tint = 20;
+      saveSettings();
+    }
+    if (settings.clockColor === "auto") {
+      settings.clockColor = "dark";
+      saveSettings();
+    }
+    if (Array.isArray(result.shortcuts)) {
+      SHORTCUTS = result.shortcuts.filter(s => !(s.url || "").toLowerCase().includes("github.com"));
+      saveShortcuts();
+    } else {
+      SHORTCUTS = [...DEFAULT_SHORTCUTS];
+      saveShortcuts();
+    }
     if (Array.isArray(result.myQuotes)) MY_QUOTES = result.myQuotes;
     if (!Array.isArray(settings.quoteCats) || !settings.quoteCats.length) {
       settings.quoteCats = [...ALL_CATS];
@@ -131,7 +145,6 @@ function loadState() {
     newQuote(false);
     layoutWidgets();
     initWeather();
-    initCalendar();
     refreshPhotoGrid();
     initWallpaper();
     requestAnimationFrame(() => {
@@ -164,12 +177,11 @@ function applySettings() {
   body.dataset.mode       = resolvedMode();
   body.dataset.bgtype     = settings.bgType;
   body.dataset.scale      = settings.scale;
-  body.dataset.clockFont  = ["default", "wide", "serif", "mono"].includes(settings.clockFont)
+  body.dataset.clockFont  = ["default", "outfit", "playfair"].includes(settings.clockFont)
                            ? settings.clockFont : "default";
   body.dataset.clockColor = settings.clockColor;
   body.style.setProperty("--clock-custom-color", settings.clockCustomColor);
   body.dataset.grain      = settings.grain ? "on" : "off";
-  body.dataset.depth      = settings.depth ? "on" : "off";
   body.dataset.parallax   = settings.parallax && !settings.lowPerf ? "on" : "off";
   body.dataset.lowperf    = settings.lowPerf ? "on" : "off";
   body.dataset.hideClock  = settings.showClock ? "" : "1";
@@ -191,7 +203,6 @@ function applySettings() {
   const vis = {
     quoteCard: settings.showQuote,
     weatherCard: settings.showWeather,
-    calCard: settings.showCalendar,
     island: settings.showIsland,
   };
   Object.entries(vis).forEach(([id, on]) => {
@@ -223,7 +234,6 @@ function applySettings() {
 
   updateProfile();
   updateQuoteStats();
-  updateDepthUI();
   updateClock();
   renderIsland();
 }
@@ -246,15 +256,11 @@ function syncControls() {
   set("optQuote2", "checked", settings.showQuote);
   set("optQuoteRotate", "value", settings.quoteRotate);
   set("optBgRotate", "value", settings.bgRotate);
-  set("optDepth", "checked", settings.depth);
-  set("optParallax", "checked", settings.parallax);
   $$("#quoteCats input").forEach((cb) => { cb.checked = settings.quoteCats.includes(cb.dataset.cat); });
   set("optWeather", "checked", settings.showWeather);
   set("optUnit", "value", settings.unit);
   syncManualLocationUI();
-  set("optCalendar", "checked", settings.showCalendar);
-  set("optCalendar2", "checked", settings.showCalendar);
-  set("optClockFont", "value", ["default", "wide", "serif", "mono"].includes(settings.clockFont)
+  set("optClockFont", "value", ["default", "outfit", "playfair"].includes(settings.clockFont)
                              ? settings.clockFont : "default");
   set("optTint", "value", settings.tint);
   $("optTintValue").textContent = `${settings.tint}%`;
@@ -300,12 +306,20 @@ function greetingText() {
 function updateClock() {
   const now = new Date();
   let h = now.getHours();
+  let ampm = "";
+
   if (!settings.use24hr) {
+    ampm = h >= 12 ? "PM" : "AM";
     h = h % 12 || 12;
+    $("clockHour").textContent = String(h);
+  } else {
+    $("clockHour").textContent = String(h).padStart(2, "0");
   }
-  $("clockHour").textContent = String(h).padStart(2, "0");
+
   $("clockMinute").textContent = String(now.getMinutes()).padStart(2, "0");
   $("clockSec").textContent = settings.showSeconds ? String(now.getSeconds()).padStart(2, "0") : "";
+  const ampmEl = $("clockAmpm");
+  if (ampmEl) ampmEl.textContent = ampm;
   $("date").textContent = now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
 }
 setInterval(updateClock, 1000);
@@ -350,34 +364,82 @@ function restartIslandTimer() {
 // Weather
 // ============================================================
 const WX = {
-  sun: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-      <circle cx="12" cy="12" r="4.2" fill="rgba(255,255,255,.22)"/>
-      <g class="wx-spin"><path d="M12 1.8v2.4M12 19.8v2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M1.8 12h2.4M19.8 12h2.4M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"/></g>
+  sun: `<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round">
+      <defs>
+        <linearGradient id="wxSunGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#FDE047"/>
+          <stop offset="100%" stop-color="#F59E0B"/>
+        </linearGradient>
+      </defs>
+      <circle cx="12" cy="12" r="4.5" fill="url(#wxSunGrad)" stroke="#F59E0B" stroke-width="0.8"/>
+      <g class="wx-spin" stroke="#FBBF24" stroke-width="1.8"><path d="M12 1.8v2.4M12 19.8v2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M1.8 12h2.4M19.8 12h2.4M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"/></g>
     </svg>`,
-  partly: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="8.4" cy="8" r="3.1" fill="rgba(255,255,255,.22)"/>
-      <g class="wx-spin" style="transform-origin:8.4px 8px"><path d="M8.4 2.4v1.4M8.4 12.2v1.4M3.7 3.3l1 1M12.1 11.7l1 1M2 8h1.4M13.4 8h1.4M3.7 12.7l1-1M12.1 4.3l1-1"/></g>
-      <path d="M8 19.6h9.2a3.4 3.4 0 0 0 .3-6.8 4.6 4.6 0 0 0-8.9-1.1A3.9 3.9 0 0 0 8 19.6z" fill="rgba(255,255,255,.16)"/>
+  partly: `<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <defs>
+        <linearGradient id="wxSunGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#FDE047"/>
+          <stop offset="100%" stop-color="#F59E0B"/>
+        </linearGradient>
+        <linearGradient id="wxCloudGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#FFFFFF"/>
+          <stop offset="100%" stop-color="#BAE6FD"/>
+        </linearGradient>
+      </defs>
+      <circle cx="8.4" cy="8" r="3.2" fill="url(#wxSunGrad2)" stroke="#F59E0B" stroke-width="0.8"/>
+      <g class="wx-spin" style="transform-origin:8.4px 8px" stroke="#FBBF24" stroke-width="1.6"><path d="M8.4 2.4v1.4M8.4 12.2v1.4M3.7 3.3l1 1M12.1 11.7l1 1M2 8h1.4M13.4 8h1.4M3.7 12.7l1-1M12.1 4.3l1-1"/></g>
+      <path d="M8 19.6h9.2a3.4 3.4 0 0 0 .3-6.8 4.6 4.6 0 0 0-8.9-1.1A3.9 3.9 0 0 0 8 19.6z" fill="url(#wxCloudGrad)" stroke="#7DD3FC" stroke-width="0.9"/>
     </svg>`,
-  cloud: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M6.8 19h10.4a3.8 3.8 0 0 0 .4-7.6 5.2 5.2 0 0 0-10-1.3A4.3 4.3 0 0 0 6.8 19z" fill="rgba(255,255,255,.18)"/>
+  cloud: `<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <defs>
+        <linearGradient id="wxCloudGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#F8FAFC"/>
+          <stop offset="100%" stop-color="#94A3B8"/>
+        </linearGradient>
+      </defs>
+      <path d="M6.8 19h10.4a3.8 3.8 0 0 0 .4-7.6 5.2 5.2 0 0 0-10-1.3A4.3 4.3 0 0 0 6.8 19z" fill="url(#wxCloudGrad2)" stroke="#CBD5E1" stroke-width="1"/>
     </svg>`,
-  fog: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M6.8 15.5h10.4a3.8 3.8 0 0 0 .4-7.6 5.2 5.2 0 0 0-10-1.3 4.3 4.3 0 0 0-.8 8.9z" fill="rgba(255,255,255,.16)"/>
-      <path d="M4 19h16M6.5 22h11" opacity=".65"/>
+  fog: `<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <defs>
+        <linearGradient id="wxCloudGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#F8FAFC"/>
+          <stop offset="100%" stop-color="#94A3B8"/>
+        </linearGradient>
+      </defs>
+      <path d="M6.8 15.5h10.4a3.8 3.8 0 0 0 .4-7.6 5.2 5.2 0 0 0-10-1.3 4.3 4.3 0 0 0-.8 8.9z" fill="url(#wxCloudGrad3)" stroke="#CBD5E1" stroke-width="1"/>
+      <path d="M4 19h16M6.5 22h11" stroke="#38BDF8" stroke-width="1.6" opacity=".8"/>
     </svg>`,
-  rain: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M6.8 15.2h10.4a3.8 3.8 0 0 0 .4-7.6 5.2 5.2 0 0 0-10-1.3 4.3 4.3 0 0 0-.8 8.9z" fill="rgba(255,255,255,.18)"/>
-      <path class="wx-drop" d="M8.6 18v2.4"/><path class="wx-drop" d="M12 18.4v2.8"/><path class="wx-drop" d="M15.4 18v2.4"/>
+  rain: `<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <defs>
+        <linearGradient id="wxCloudGrad4" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#F1F5F9"/>
+          <stop offset="100%" stop-color="#64748B"/>
+        </linearGradient>
+      </defs>
+      <path d="M6.8 15.2h10.4a3.8 3.8 0 0 0 .4-7.6 5.2 5.2 0 0 0-10-1.3 4.3 4.3 0 0 0-.8 8.9z" fill="url(#wxCloudGrad4)" stroke="#94A3B8" stroke-width="1"/>
+      <path class="wx-drop" d="M8.6 18v2.6" stroke="#38BDF8" stroke-width="2"/>
+      <path class="wx-drop" d="M12 18.4v3.0" stroke="#0EA5E9" stroke-width="2"/>
+      <path class="wx-drop" d="M15.4 18v2.6" stroke="#38BDF8" stroke-width="2"/>
     </svg>`,
-  snow: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M6.8 14.8h10.4a3.8 3.8 0 0 0 .4-7.6 5.2 5.2 0 0 0-10-1.3 4.3 4.3 0 0 0-.8 8.9z" fill="rgba(255,255,255,.18)"/>
-      <g class="wx-drop"><path d="M8.6 18.2v2.6M7.5 18.9l2.2 1.2M9.7 18.9l-2.2 1.2"/></g>
-      <g class="wx-drop"><path d="M15.4 18.2v2.6M14.3 18.9l2.2 1.2M16.5 18.9l-2.2 1.2"/></g>
+  snow: `<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <defs>
+        <linearGradient id="wxCloudGrad5" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#FFFFFF"/>
+          <stop offset="100%" stop-color="#E2E8F0"/>
+        </linearGradient>
+      </defs>
+      <path d="M6.8 14.8h10.4a3.8 3.8 0 0 0 .4-7.6 5.2 5.2 0 0 0-10-1.3 4.3 4.3 0 0 0-.8 8.9z" fill="url(#wxCloudGrad5)" stroke="#CBD5E1" stroke-width="1"/>
+      <g class="wx-drop" stroke="#BAE6FD" stroke-width="1.8"><path d="M8.6 18.2v2.6M7.5 18.9l2.2 1.2M9.7 18.9l-2.2 1.2"/></g>
+      <g class="wx-drop" stroke="#BAE6FD" stroke-width="1.8"><path d="M15.4 18.2v2.6M14.3 18.9l2.2 1.2M16.5 18.9l-2.2 1.2"/></g>
     </svg>`,
-  storm: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M6.8 14.6h10.4a3.8 3.8 0 0 0 .4-7.6 5.2 5.2 0 0 0-10-1.3 4.3 4.3 0 0 0-.8 8.9z" fill="rgba(255,255,255,.18)"/>
-      <path class="wx-bolt" d="M13.2 15.8 10 19.4h3.2l-1.4 3.2" fill="none"/>
+  storm: `<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <defs>
+        <linearGradient id="wxCloudGrad6" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#475569"/>
+          <stop offset="100%" stop-color="#1E293B"/>
+        </linearGradient>
+      </defs>
+      <path d="M6.8 14.6h10.4a3.8 3.8 0 0 0 .4-7.6 5.2 5.2 0 0 0-10-1.3 4.3 4.3 0 0 0-.8 8.9z" fill="url(#wxCloudGrad6)" stroke="#64748B" stroke-width="1"/>
+      <path class="wx-bolt" d="M13.2 15.8 10 19.4h3.2l-1.4 3.2" fill="#FACC15" stroke="#FDE047" stroke-width="1.4"/>
     </svg>`,
 };
 
@@ -454,174 +516,52 @@ function initWeather() {
   if (settings.manualLocation) {
     return loadWeather(settings.manualLocation.lat, settings.manualLocation.lon);
   }
-  if (!navigator.geolocation) return promptForLocation();
+
+  let resolved = false;
+  const tryIpFallback = () => {
+    if (resolved) return;
+    fetch("https://ipapi.co/json/")
+      .then((r) => r.json())
+      .then((data) => {
+        if (resolved) return;
+        resolved = true;
+        if (data.latitude && data.longitude) {
+          loadWeather(data.latitude, data.longitude);
+        } else {
+          promptForLocation();
+        }
+      })
+      .catch(() => {
+        if (!resolved) promptForLocation();
+      });
+  };
+
+  if (!navigator.geolocation) {
+    tryIpFallback();
+    return;
+  }
+
+  const timer = setTimeout(tryIpFallback, 2500);
+
   navigator.geolocation.getCurrentPosition(
-    (pos) => loadWeather(pos.coords.latitude, pos.coords.longitude),
-    () => promptForLocation()
-  );
-}
-
-// ============================================================
-// Google Calendar
-// ============================================================
-const CAL_CONFIGURED = HAS_EXT &&
-  !(chrome.runtime?.getManifest?.()?.oauth2?.client_id || "").startsWith("PASTE-YOUR-CLIENT-ID");
-
-let calEvents = [];
-let calToken = null;
-
-function calSetupMessage() {
-  if (!HAS_EXT) return "Calendar needs the installed extension.";
-  if (!CAL_CONFIGURED) {
-    return "Add your own Google OAuth client ID to <b>manifest.json</b> to enable this. " +
-           "See <b>SETUP-CALENDAR.md</b> in the extension folder.";
-  }
-  return "Only today's events are read, and only into this browser.";
-}
-
-function getToken(interactive) {
-  return new Promise((resolve, reject) => {
-    if (!CAL_CONFIGURED) return reject(new Error("not configured"));
-    chrome.identity.getAuthToken({ interactive }, (token) => {
-      if (chrome.runtime.lastError || !token) {
-        return reject(new Error(chrome.runtime.lastError?.message || "no token"));
+    (pos) => {
+      clearTimeout(timer);
+      if (!resolved) {
+        resolved = true;
+        loadWeather(pos.coords.latitude, pos.coords.longitude);
       }
-      resolve(token);
-    });
-  });
-}
-
-function fetchCalendar(token) {
-  const start = new Date(); start.setHours(0, 0, 0, 0);
-  const end   = new Date(); end.setHours(23, 59, 59, 999);
-  const url = "https://www.googleapis.com/calendar/v3/calendars/primary/events" +
-    `?timeMin=${start.toISOString()}&timeMax=${end.toISOString()}` +
-    "&singleEvents=true&orderBy=startTime&maxResults=20";
-
-  return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
-    .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
-    .then((data) => {
-      calEvents = (data.items || []).map((ev) => ({
-        summary: ev.summary || "(no title)",
-        start: ev.start?.dateTime ? new Date(ev.start.dateTime) : null,
-        allDay: !ev.start?.dateTime,
-      }));
-      renderCalendar();
-      renderIsland();
-    });
-}
-
-function nextEvent() {
-  const now = Date.now();
-  const ev = calEvents.find((e) => e.start && e.start.getTime() > now);
-  if (!ev) return null;
-  const mins = Math.round((ev.start.getTime() - now) / 60000);
-  const rel = mins < 60 ? `in ${mins} min`
-            : mins < 1440 ? `in ${Math.round(mins / 60)}h`
-            : ev.start.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  return { summary: ev.summary, rel };
-}
-
-function renderCalendar() {
-  const list = $("calList");
-  list.innerHTML = "";
-
-  if (!calToken) {
-    const msg = document.createElement("div");
-    msg.className = "wx-loading";
-    msg.textContent = CAL_CONFIGURED ? "Connect your Google account." : "Calendar not configured.";
-    list.appendChild(msg);
-    if (CAL_CONFIGURED) {
-      const btn = document.createElement("button");
-      btn.className = "cal-cta";
-      btn.textContent = "Connect Google Calendar";
-      btn.onclick = (e) => { e.stopPropagation(); connectCalendar(); };
-      list.appendChild(btn);
-    }
-    return;
-  }
-
-  if (!calEvents.length) {
-    list.innerHTML = `<div class="wx-loading">Nothing scheduled today.</div>`;
-    return;
-  }
-
-  const now = Date.now();
-  const upNext = calEvents.find((ev) => ev.start && ev.start.getTime() > now);
-
-  calEvents.forEach((ev) => {
-    const row = document.createElement("div");
-    row.className = "cal-event";
-    // dim what has already happened; highlight only the one coming up next
-    if (ev.start && ev.start.getTime() <= now) row.classList.add("past");
-    else if (ev === upNext) row.classList.add("next");
-
-    const bar = document.createElement("div");
-    bar.className = "cal-bar";
-
-    const body = document.createElement("div");
-    const when = document.createElement("div");
-    when.className = "cal-when";
-    when.textContent = ev.allDay ? "ALL DAY"
-      : ev.start.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toUpperCase();
-    const what = document.createElement("div");
-    what.className = "cal-what";
-    what.textContent = ev.summary;
-    body.append(when, what);
-
-    row.append(bar, body);
-    list.appendChild(row);
-  });
-}
-
-function setCalUI(connected) {
-  $("calConnect").hidden = connected;
-  $("calDisconnect").hidden = !connected;
-  $("calStatus").textContent = connected ? "Connected." :
-    CAL_CONFIGURED ? "Not connected." : "Needs a Google OAuth client ID.";
-  $("calConnect").disabled = !CAL_CONFIGURED;
-}
-
-function connectCalendar() {
-  getToken(true)
-    .then((token) => { calToken = token; setCalUI(true); return fetchCalendar(token); })
-    .catch(() => {
-      calToken = null;
-      setCalUI(false);
-      $("calList").innerHTML = `<div class="wx-loading">Couldn't connect.</div>`;
-    });
-}
-
-function disconnectCalendar() {
-  if (calToken && HAS_EXT) chrome.identity.removeCachedAuthToken({ token: calToken }, () => {});
-  calToken = null;
-  calEvents = [];
-  setCalUI(false);
-  renderCalendar();
-  renderIsland();
+    },
+    () => {
+      clearTimeout(timer);
+      tryIpFallback();
+    },
+    { timeout: 3000 }
+  );
 }
 
 function syncManualLocationUI() {
   updateLocationUI();
 }
-
-function initCalendar() {
-  $("calSetupNote").innerHTML = calSetupMessage();
-  setCalUI(false);
-  renderCalendar();
-  if (!settings.showCalendar || !CAL_CONFIGURED) return;
-  // silent sign-in: only succeeds if the user already granted access
-  getToken(false)
-    .then((token) => { calToken = token; setCalUI(true); return fetchCalendar(token); })
-    .catch(() => {});
-}
-
-$("calConnect").addEventListener("click", connectCalendar);
-$("calDisconnect").addEventListener("click", disconnectCalendar);
-$("refreshCal").addEventListener("click", (e) => {
-  e.stopPropagation();
-  if (calToken) fetchCalendar(calToken).catch(() => {});
-});
 
 // ============================================================
 // Photo backgrounds (IndexedDB)
@@ -706,8 +646,6 @@ function refreshPhotoGrid() {
       b.appendChild(del);
       grid.appendChild(b);
     });
-
-    updateDepthUI(photos);
   }).catch(() => {});
 }
 
@@ -753,10 +691,9 @@ if (searchForm) {
 // Widget dragging + grid snapping
 // ============================================================
 const GRID = 20;
-const WIDGETS = ["weather", "calendar"];
+const WIDGETS = ["weather"];
 const WIDGET_EL = {
   weather: "weatherCard",
-  calendar: "calCard",
 };
 
 function availableViewportWidth() {
@@ -767,11 +704,9 @@ function availableViewportWidth() {
 }
 
 function defaultPosition(id, el) {
-  const w = el.offsetWidth || 300;
+  const w = el.offsetWidth || 168;
   const vw = availableViewportWidth();
   switch (id) {
-    case "quote":    return { x: 28, y: 28 };
-    case "calendar": return { x: 28, y: 28 + (($("quoteCard").offsetHeight || 200) + 18) };
     case "weather":  return { x: vw - w - 28, y: 28 };
     default:         return { x: 28, y: 28 };
   }
@@ -869,17 +804,14 @@ window.addEventListener("resize", () => {
 // ============================================================
 // Dock
 // ============================================================
-const BUILTIN_ICONS = {
-  "google.com": `<svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>`,
-  "youtube.com": `<svg viewBox="0 0 24 24"><path fill="#FF0000" d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z"/><path fill="#FFFFFF" d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>`,
-  "mail.google.com": `<svg viewBox="0 0 24 24"><path fill="#4285F4" d="M1.5 6.5v11A1.5 1.5 0 0 0 3 19h2.5V9.5L1.5 6.5z"/><path fill="#34A853" d="M18.5 19H21a1.5 1.5 0 0 0 1.5-1.5v-11L18.5 9.5V19z"/><path fill="#EA4335" d="M18.5 9.5V5a1 1 0 0 0-1.5-.86L12 7.5 7 4.14A1 1 0 0 0 5.5 5v4.5l6.5 4.5 6.5-4.5z"/><path fill="#FBBC05" d="M5.5 9.5L1.5 6.5 5.5 4.14V9.5z"/><path fill="#C5221F" d="M18.5 9.5V4.14L22.5 6.5l-4 3z"/></svg>`,
-  "drive.google.com": `<svg viewBox="0 0 24 24"><path fill="#0066DA" d="M15.42 16.5H23.1L19.26 9.75H11.58L15.42 16.5Z"/><path fill="#00AC47" d="M8.58 16.5L4.74 9.75L8.58 3H16.26L12.42 9.75L8.58 16.5Z"/><path fill="#EA4335" d="M4.74 9.75L0.9 16.5H8.58L12.42 9.75H4.74Z"/><path fill="#FFBA00" d="M8.58 3L0.9 16.5L4.74 16.5L12.42 3H8.58Z"/></svg>`
-};
+const BUILTIN_ICONS = {};
+// All icons fetched from Google's favicon service for pixel-perfect accuracy
 
 function getBuiltinIcon(url) {
   try {
     const u = url.toLowerCase();
     const host = new URL(url).hostname.replace(/^www\./, "").toLowerCase();
+    if (host === "github.com" || u.includes("github.com")) return BUILTIN_ICONS["github.com"];
     if (host === "mail.google.com" || u.includes("mail.google.com") || u.includes("gmail.com")) return BUILTIN_ICONS["mail.google.com"];
     if (host === "drive.google.com" || u.includes("drive.google.com")) return BUILTIN_ICONS["drive.google.com"];
     if (host === "youtube.com" || u.includes("youtube.com") || u.includes("youtu.be")) return BUILTIN_ICONS["youtube.com"];
@@ -889,12 +821,12 @@ function getBuiltinIcon(url) {
 }
 
 const FALLBACK_COLORS = ["#4285F4","#EA4335","#FBBC05","#34A853","#8E44AD","#16A085","#E67E22"];
-const faviconFor = (url, size = 64) =>
+const faviconFor = (url, size = 128) =>
   `https://www.google.com/s2/favicons?sz=${size}&domain_url=${encodeURIComponent(url)}`;
 
 function renderShortcuts() {
   const dock = $("dock");
-  dock.querySelectorAll("a:not(#settingsBtn)").forEach((el) => el.remove());
+  dock.querySelectorAll("a:not(#settingsBtn):not(#geminiBtn)").forEach((el) => el.remove());
   const divider = dock.querySelector(".dock-divider");
 
   SHORTCUTS.forEach((s, i) => {
@@ -1103,10 +1035,7 @@ bindToggle("optDate", "showDate");
 bindToggle("optLowPerf", "lowPerf");
 bindToggle("optSearch", "showSearch");
 bindToggle(["optQuote", "optQuote2"], "showQuote", layoutWidgets);
-bindToggle("optDepth", "depth");
-bindToggle("optParallax", "parallax");
 bindToggle("optWeather", "showWeather", layoutWidgets);
-bindToggle(["optCalendar", "optCalendar2"], "showCalendar", () => { layoutWidgets(); initCalendar(); });
 bindToggle("optGrain", "grain");
 bindToggle("optSnap", "snap");
 
@@ -1163,7 +1092,7 @@ $("resetPositions").addEventListener("click", () => {
 
 $("resetWidgets").addEventListener("click", () => {
   ["showIsland","islandCycle","showClock","showDate","use24hr","showSeconds","showSearch",
-   "engine","showQuote","showWeather","unit","showCalendar"]
+   "engine","showQuote","showWeather","unit"]
     .forEach((k) => { settings[k] = DEFAULTS[k]; });
   settings.positions = {};
   syncControls();
@@ -1237,7 +1166,7 @@ $("importInput").addEventListener("change", (e) => {
 // Settings search
 // ============================================================
 const PANE_TITLES = {
-  general: "General", widgets: "Widgets & Dock", quotes: "Quotes", feeds: "Feeds",
+  general: "General", widgets: "Widgets & Dock", quotes: "Quotes",
   display: "Display", appearance: "Appearance", about: "About",
 };
 
@@ -1565,57 +1494,14 @@ function revokeUrls() {
   objectUrls = [];
 }
 
-const UNSPLASH_COLLECTIONS = {
-  nature: [
-    { id: "photo-1470071459604-3b5ec3a7fe05", author: "Jerry Zhang", link: "https://unsplash.com/@zlj318" },
-    { id: "photo-1506744038136-46273834b3fb", author: "Bailey Zindel", link: "https://unsplash.com/@baileyzindel" },
-    { id: "photo-1469474968028-56623f02e42e", author: "David Marcu", link: "https://unsplash.com/@davidmarcu" },
-    { id: "photo-1518495973542-4542c06a5843", author: "Luca Bravo", link: "https://unsplash.com/@lucabravo" },
-    { id: "photo-1472214103451-9374bd1c798e", author: "Sebastien Gabriel", link: "https://unsplash.com/@sebastien_gabriel" },
-    { id: "photo-1426604966848-d7adac402bff", author: "Kalen Emsley", link: "https://unsplash.com/@kalenemsley" },
-    { id: "photo-1441974231531-c6227db76b6e", author: "Sascha Bosshard", link: "https://unsplash.com/@bosshardsascha" },
-    { id: "photo-1507525428034-b723cf961d3e", author: "Sean Oulashin", link: "https://unsplash.com/@oulashin" },
-  ],
-  minimal: [
-    { id: "photo-1518709268805-4e9042af9f23", author: "Alexander Grey", link: "https://unsplash.com/@sharonmccutcheon" },
-    { id: "photo-1550684848-fac1c5b4e853", author: "Joel Filipe", link: "https://unsplash.com/@joelfilip" },
-    { id: "photo-1618005182384-a83a8bd57fbe", author: "Milad Fakurian", link: "https://unsplash.com/@fakurian" },
-    { id: "photo-1509198397868-475647b2a1e5", author: "Fakurian Design", link: "https://unsplash.com/@fakuriandesign" },
-    { id: "photo-1557683316-973673baf926", author: "Gradient Creator", link: "https://unsplash.com" },
-    { id: "photo-1579546929518-9e396f3cc809", author: "Pawel Czerwinski", link: "https://unsplash.com/@pawel_czerwinski" },
-  ],
-  architecture: [
-    { id: "photo-1486406146926-c627a92ad1ab", author: "Sean Pollock", link: "https://unsplash.com/@seanpollock" },
-    { id: "photo-1477959858617-67f30bc75b82", author: "Sawyer Bengtson", link: "https://unsplash.com/@the_real_bengtson" },
-    { id: "photo-1514565131-fce0801e5785", author: "Aleksandar Pasaric", link: "https://unsplash.com/@apasaric" },
-    { id: "photo-1449824913935-59a10b8d2000", author: "Matthew Henry", link: "https://unsplash.com/@matthewhenry" },
-    { id: "photo-1519501025264-65ba15a82390", author: "Daniel Chen", link: "https://unsplash.com/@danielchen" },
-    { id: "photo-1492691527719-9d1e07e534b4", author: "Samson", link: "https://unsplash.com/@samson" },
-  ],
-  space: [
-    { id: "photo-1506703719100-a0f3a48c0f86", author: "NASA", link: "https://unsplash.com/@nasa" },
-    { id: "photo-1451187580459-43490279c0fa", author: "NASA", link: "https://unsplash.com/@nasa" },
-    { id: "photo-1516339901601-2e1b62dc0c45", author: "Vincentiu Solomon", link: "https://unsplash.com/@vincentiu" },
-    { id: "photo-1446776811953-b23d57bd21aa", author: "NASA", link: "https://unsplash.com/@nasa" },
-    { id: "photo-1462331940025-496dfbfc7564", author: "Jeremy Thomas", link: "https://unsplash.com/@jeremythomasphoto" },
-    { id: "photo-1538370965046-79c0d6907d47", author: "Adrian Pelletier", link: "https://unsplash.com/@adrianpelletier" },
-  ],
-  cyberpunk: [
-    { id: "photo-1542751371-adc38448a05e", author: "Florian Olivo", link: "https://unsplash.com/@florianolivo" },
-    { id: "photo-1555680202-c86f0e12f086", author: "Victor Garcia", link: "https://unsplash.com/@victorgarcia" },
-    { id: "photo-1578632767115-351597cf2477", author: "Denis Cherkasov", link: "https://unsplash.com/@denischerkasov" },
-    { id: "photo-1518709268805-4e9042af9f23", author: "Alexander Grey", link: "https://unsplash.com/@sharonmccutcheon" },
-    { id: "photo-1526374965328-7f61d4dc18c5", author: "Markus Spiske", link: "https://unsplash.com/@markusspiske" },
-  ],
+const UNSPLASH_COLLECTIONS = window.UNSPLASH_WALLPAPERS || {
+  nature: [],
+  minimal: [],
+  architecture: [],
+  space: [],
+  cyberpunk: [],
+  all: [],
 };
-
-UNSPLASH_COLLECTIONS.all = [
-  ...UNSPLASH_COLLECTIONS.nature,
-  ...UNSPLASH_COLLECTIONS.minimal,
-  ...UNSPLASH_COLLECTIONS.architecture,
-  ...UNSPLASH_COLLECTIONS.space,
-  ...UNSPLASH_COLLECTIONS.cyberpunk,
-];
 
 let bingImages = [];
 let currentUnsplashOffset = 0;
@@ -1674,7 +1560,7 @@ function applyUnsplashWallpaper(bump = false) {
 
   layer.style.backgroundImage = `url("${url}")`;
   setCredit(`Photo by ${item.author} (Unsplash)`, item.link || "https://unsplash.com");
-  applyAutoClockContrast();
+  applyAutoClockContrast(url);
 }
 
 function loadBing() {
@@ -1708,30 +1594,26 @@ function loadBing() {
 
 function applyWallpaper() {
   const layer = $("photoLayer");
-  const depth = $("depthLayer");
   if (!layer) return;
 
   setupBgRotateTimer();
 
   if (settings.bgType === "unsplash") {
-    if (depth) depth.style.backgroundImage = "";
     applyUnsplashWallpaper(false);
     return;
   }
 
   if (settings.bgType === "bing") {
-    if (depth) depth.style.backgroundImage = "";
     if (!bingImages.length) { layer.style.backgroundImage = ""; setCredit(""); return; }
     const im = bingImages[rotationIndex(bingImages.length)];
     layer.style.backgroundImage = `url("${im.url}")`;
     setCredit(im.credit || im.title, im.link);
-    applyAutoClockContrast();
+    applyAutoClockContrast(im.url);
     return;
   }
 
   if (settings.bgType !== "photo") {
     layer.style.backgroundImage = "";
-    if (depth) depth.style.backgroundImage = "";
     setCredit("");
     return;
   }
@@ -1740,21 +1622,14 @@ function applyWallpaper() {
   allPhotos().then((photos) => {
     if (!photos.length) {
       layer.style.backgroundImage = "";
-      if (depth) depth.style.backgroundImage = "";
       return;
     }
-    // "never" pins to the chosen photo; any rotation draws across the library
     const rec = settings.bgRotate === "never"
       ? (photos.find((p) => p.id === settings.photoId) || photos[0])
       : photos[rotationIndex(photos.length)];
 
     revokeUrls();
-    layer.style.backgroundImage = `url("${trackUrl(URL.createObjectURL(rec.blob))}")`;
-    if (depth) {
-      depth.style.backgroundImage = rec.fg
-        ? `url("${trackUrl(URL.createObjectURL(rec.fg))}")`
-        : "";
-    }
+    layer.style.backgroundImage = `url("${trackUrl(URL.createObjectURL(rec.blob))}")`;    
     applyAutoClockContrast();
   }).catch(() => {});
 }
@@ -1764,64 +1639,8 @@ function initWallpaper() {
   else applyWallpaper();
 }
 
-function updateDepthUI(photos) {
-  const status = $("depthStatus");
-  const add = $("addDepthBtn");
-  const remove = $("removeDepthBtn");
-  if (!status || !add || !remove) return;
-
-  const finish = (list) => {
-    const rec = list.find((p) => p.id === settings.photoId);
-    if (!rec) {
-      status.textContent = "Select one of your photos first.";
-      add.disabled = true;
-      remove.hidden = true;
-      return;
-    }
-    add.disabled = false;
-    status.textContent = rec.fg ? "A foreground is attached to this photo."
-                                : "No foreground on this photo yet.";
-    remove.hidden = !rec.fg;
-  };
-
-  if (photos) finish(photos);
-  else allPhotos().then(finish).catch(() => {});
-}
 
 $("bingRefresh").addEventListener("click", () => loadBing().then(applyWallpaper));
-
-$("addDepthBtn").addEventListener("click", () => $("depthInput").click());
-$("depthInput").addEventListener("change", (e) => {
-  const file = e.target.files[0];
-  if (!file || !settings.photoId) return;
-  getPhoto(settings.photoId).then((rec) => {
-    if (!rec) return;
-    rec.fg = file;
-    return putPhoto(rec);
-  }).then(() => {
-    e.target.value = "";
-    if (!settings.depth) {          // attaching a cut-out means you want it on
-      settings.depth = true;
-      syncControls();
-      saveSettings();
-    }
-    applySettings();
-    refreshPhotoGrid();
-    applyWallpaper();
-  }).catch(() => {});
-});
-
-$("removeDepthBtn").addEventListener("click", () => {
-  if (!settings.photoId) return;
-  getPhoto(settings.photoId).then((rec) => {
-    if (!rec) return;
-    delete rec.fg;
-    return putPhoto(rec);
-  }).then(() => {
-    refreshPhotoGrid();
-    applyWallpaper();
-  }).catch(() => {});
-});
 
 bindValue("optBgRotate", "bgRotate", (v) => v, applyWallpaper);
 bindValue("optUnsplashCat", "unsplashCat", (v) => v, () => applyWallpaper());
@@ -1865,32 +1684,65 @@ const THEME_LUMINANCE = {
   dark: 0.08,   // pure dark -> light text
 };
 
-/** Average luminance (0-1) of an image, sampling the center-top quadrant where the clock sits. */
 function sampleImageLuminance(url) {
   return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      try {
-        const w = 64, h = 64;
-        const canvas = document.createElement("canvas");
-        canvas.width = w; canvas.height = h;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, w, h);
-        // Sample the region where the clock and date sit (upper center)
-        const sx = Math.floor(w * 0.15), sy = Math.floor(h * 0.20);
-        const sw = Math.floor(w * 0.70), sh = Math.floor(h * 0.45);
-        const { data } = ctx.getImageData(sx, sy, sw, sh);
-        let sum = 0, count = 0;
-        for (let i = 0; i < data.length; i += 4) {
-          sum += relLuminance(data[i], data[i + 1], data[i + 2]);
-          count++;
+    const analyze = (blobOrUrl, shouldRevoke = false) => {
+      let sampleUrl = blobOrUrl;
+      if (typeof sampleUrl === "string" && sampleUrl.includes("images.unsplash.com")) {
+        sampleUrl = sampleUrl.split("?")[0] + "?w=140&q=50&auto=format&fit=crop";
+      }
+      const img = new Image();
+      if (!sampleUrl.startsWith("blob:")) {
+        img.crossOrigin = "anonymous";
+      }
+      img.onload = () => {
+        try {
+          const w = 64, h = 64;
+          const canvas = document.createElement("canvas");
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, w, h);
+          // Sample the main central quadrant where clock, date, search, and quote sit
+          const sx = Math.floor(w * 0.15), sy = Math.floor(h * 0.10);
+          const sw = Math.floor(w * 0.70), sh = Math.floor(h * 0.60);
+          const { data } = ctx.getImageData(sx, sy, sw, sh);
+          let sum = 0, count = 0;
+          for (let i = 0; i < data.length; i += 4) {
+            sum += relLuminance(data[i], data[i + 1], data[i + 2]);
+            count++;
+          }
+          if (shouldRevoke) URL.revokeObjectURL(blobOrUrl);
+          resolve(count > 0 ? sum / count : 0.2);
+        } catch (err) {
+          if (shouldRevoke) URL.revokeObjectURL(blobOrUrl);
+          reject(err);
         }
-        resolve(sum / count);
-      } catch (err) { reject(err); }
+      };
+      img.onerror = (e) => {
+        if (shouldRevoke) URL.revokeObjectURL(blobOrUrl);
+        reject(e);
+      };
+      img.src = sampleUrl;
     };
-    img.onerror = reject;
-    img.src = url;
+
+    if (url.startsWith("blob:")) {
+      analyze(url, false);
+      return;
+    }
+
+    // Fetch as blob to prevent cross-origin canvas security errors (e.g. Bing wallpapers)
+    fetch(url)
+      .then((r) => {
+        if (!r.ok) throw new Error(r.statusText);
+        return r.blob();
+      })
+      .then((blob) => {
+        analyze(URL.createObjectURL(blob), true);
+      })
+      .catch(() => {
+        // Fallback to direct URL
+        analyze(url, false);
+      });
   });
 }
 
@@ -1900,7 +1752,7 @@ function currentWallpaperUrl() {
   return m ? m[1] : null;
 }
 
-function applyAutoClockContrast() {
+function applyAutoClockContrast(directUrl = null) {
   // "light"/"dark" pin one of auto's own two outcomes instead of detecting it —
   // same rendering either way, just fixed instead of chosen dynamically.
   if (settings.clockColor === "light") { document.body.dataset.autoDark = ""; return; }
@@ -1914,15 +1766,15 @@ function applyAutoClockContrast() {
   };
 
   if (settings.bgType === "solid") {
-    finish(hexLuminance(settings.solidColor) > 0.36);
+    finish(hexLuminance(settings.solidColor) > 0.30);
     return;
   }
 
-  if (settings.bgType === "photo" || settings.bgType === "bing") {
-    const url = currentWallpaperUrl();
+  if (settings.bgType === "photo" || settings.bgType === "bing" || settings.bgType === "unsplash") {
+    const url = directUrl || currentWallpaperUrl();
     if (url) {
       sampleImageLuminance(url)
-        .then((lum) => finish(lum > 0.36))
+        .then((lum) => finish(lum > 0.30))
         .catch(() => finish(resolvedMode() === "light"));
       return;
     }
@@ -1934,7 +1786,7 @@ function applyAutoClockContrast() {
   } else {
     const theme = settings.bg || "green";
     const lum = THEME_LUMINANCE[theme] !== undefined ? THEME_LUMINANCE[theme] : 0.2;
-    finish(lum > 0.36);
+    finish(lum > 0.30);
   }
 }
 

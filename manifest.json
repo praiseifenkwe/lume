@@ -8,19 +8,11 @@
   },
   "permissions": [
     "storage",
-    "geolocation",
-    "identity"
+    "geolocation"
   ],
   "host_permissions": [
     "https://api.open-meteo.com/*",
-    "https://www.googleapis.com/*",
     "https://www.bing.com/*",
     "https://geocoding-api.open-meteo.com/*"
-  ],
-  "oauth2": {
-    "client_id": "PASTE-YOUR-CLIENT-ID-HERE.apps.googleusercontent.com",
-    "scopes": [
-      "https://www.googleapis.com/auth/calendar.readonly"
-    ]
-  }
+  ]
 }

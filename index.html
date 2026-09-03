@@ -4,6 +4,9 @@
   <meta charset="utf-8" />
   <title>New Tab</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Outfit:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet" />
   <script>
     (function() {
       try {
@@ -59,6 +62,7 @@
   <!-- ============ Now Island ============ -->
   <div class="island glass" id="island">
     <div class="island-inner" id="islandInner">
+      <span class="island-pulse-dot" id="islandPulseDot"></span>
       <span class="island-text" id="islandText"></span>
     </div>
   </div>
@@ -87,7 +91,7 @@
     <div class="weather-icon" id="weatherIcon"></div>
     <div class="weather-city" id="weatherCity">Locating&hellip;</div>
     <div class="weather-temp" id="weatherTemp">--<span class="deg">&#176;</span></div>
-    <div class="weather-cond" id="weatherCond" hidden>Loading</div>
+    <div class="weather-cond" id="weatherCond"></div>
     <span class="weather-hilo" id="weatherHilo" hidden></span>
     <div class="weather-empty" id="weatherEmpty">
       <span class="weather-empty-icons">
@@ -98,23 +102,13 @@
     </div>
   </div>
 
-  <div class="widget cal-card glass" id="calCard" data-widget="calendar">
-    <div class="card-header">
-      <h2>Today</h2>
-      <button id="refreshCal" class="icon-btn" title="Refresh">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/>
-        </svg>
-      </button>
-    </div>
-    <div class="cal-list" id="calList"></div>
-  </div>
 
   <!-- ============ Centre ============ -->
   <div class="center">
     <div class="clock" id="clock">
       <span id="clockHour"></span><span class="clock-colon">:</span><span id="clockMinute"></span><span class="clock-sup">
         <span class="seconds" id="clockSec"></span>
+        <span class="clock-ampm" id="clockAmpm"></span>
       </span>
     </div>
     <div class="date" id="date"></div>
@@ -134,17 +128,15 @@
   <div class="dock-wrap">
     <div class="dock glass" id="dock">
       <span class="dock-divider"></span>
+      <a id="geminiBtn" href="https://gemini.google.com" target="_blank" rel="noopener" data-label="Gemini" class="dock-sys dock-gemini">
+        <img src="icons/gemini.png" alt="Gemini" />
+      </a>
       <a id="settingsBtn" data-label="Settings" class="dock-sys dock-settings">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-        </svg>
+        <img src="icons/settings.png" alt="Settings" />
       </a>
     </div>
   </div>
 
-  <!-- foreground cutout — paints ABOVE the clock to create the depth effect -->
-  <div class="depth-layer" id="depthLayer"></div>
 
   <a class="bg-credit" id="bgCredit" target="_blank" rel="noopener"></a>
 
@@ -195,12 +187,7 @@
             <span>Quotes</span>
           </button>
 
-          <button class="sw-nav-item" data-pane="feeds">
-            <span class="ni" style="--ni-a:#ff9f5a;--ni-b:#f0603f">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1.6" fill="#fff" stroke="none"/></svg>
-            </span>
-            <span>Feeds</span>
-          </button>
+
 
           <button class="sw-nav-item" data-pane="display">
             <span class="ni" style="--ni-a:#5ac8fa;--ni-b:#0a84ff">
@@ -321,7 +308,7 @@
               <div class="sw-row"><span class="sw-row-label">Search</span><input type="checkbox" class="sw-toggle" id="optSearch" /></div>
               <div class="sw-row"><span class="sw-row-label">Quote of the Day</span><input type="checkbox" class="sw-toggle" id="optQuote" /></div>
               <div class="sw-row"><span class="sw-row-label">Weather</span><input type="checkbox" class="sw-toggle" id="optWeather" /></div>
-              <div class="sw-row"><span class="sw-row-label">Calendar</span><input type="checkbox" class="sw-toggle" id="optCalendar" /></div>
+
             </div>
 
             <h3 class="sw-label">Search</h3>
@@ -429,28 +416,7 @@
           <button class="sw-btn blue wide" id="addQuoteBtn">+ Add Quote</button>
         </section>
 
-        <!-- ============ Feeds ============ -->
-        <section class="sw-pane" data-pane="feeds">
-          <header class="sw-title">
-            <span class="ni lg" style="--ni-a:#ff9f5a;--ni-b:#f0603f">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1.6" fill="#fff" stroke="none"/></svg>
-            </span>
-            <h1>Feeds</h1>
-          </header>
 
-          <h3 class="sw-label">Google Calendar</h3>
-          <div class="sw-card">
-            <div class="sw-row"><span class="sw-row-label">Show Calendar Widget</span><input type="checkbox" class="sw-toggle" id="optCalendar2" /></div>
-            <div class="sw-row">
-              <span class="sw-row-label">Google Account<em id="calStatus">Not connected.</em></span>
-              <span class="sw-btn-group">
-                <button class="sw-btn blue" id="calConnect">Connect</button>
-                <button class="sw-btn grey" id="calDisconnect" hidden>Disconnect</button>
-              </span>
-            </div>
-            <div class="sw-note" id="calSetupNote"></div>
-          </div>
-        </section>
 
         <!-- ============ Display ============ -->
         <section class="sw-pane" data-pane="display">
@@ -477,17 +443,16 @@
               <span class="sw-row-label">Clock Font</span>
               <select class="sw-select" id="optClockFont">
                 <option value="default">Default</option>
-                <option value="wide">Wide</option>
-                <option value="serif">Serif</option>
-                <option value="mono">Mono</option>
+                <option value="outfit">Outfit</option>
+                <option value="playfair">Playfair Display</option>
               </select>
             </div>
             <div class="sw-row">
               <span class="sw-row-label">Clock Color</span>
               <span class="sw-dots" id="clockColors">
-                <button class="dot active" data-cc="auto" title="Auto &mdash; adapts to what's behind it" style="background:linear-gradient(160deg,#fff,#48484a)"></button>
-                <button class="dot" data-cc="light" title="Light" style="background:linear-gradient(160deg,#ffffff,#dcdce0)"></button>
-                <button class="dot" data-cc="dark" title="Dark" style="background:linear-gradient(160deg,#4a3c2e,#2b221a)"></button>
+                <button class="dot active" data-cc="auto" title="Auto &mdash; adapts to what's behind it" style="background:linear-gradient(160deg,#F5F2EF,#332D29)"></button>
+                <button class="dot" data-cc="light" title="Light" style="background:linear-gradient(160deg,#ffffff,#F5F2EF)"></button>
+                <button class="dot" data-cc="dark" title="Dark" style="background:linear-gradient(160deg,#4a3c2e,#332D29)"></button>
                 <label class="dot cc-custom" data-cc="custom" title="Custom colour">
                   <input type="color" id="clockCustomColor" />
                 </label>
@@ -608,26 +573,6 @@
             </div>
           </div>
 
-          <h3 class="sw-label">Depth Effect</h3>
-          <div class="sw-card">
-            <div class="sw-row">
-              <span class="sw-row-label"><span class="lbl">Depth Effect <b class="badge">BETA</b></span><em>Layers a cut-out subject in front of the clock, like an iOS lock screen.</em></span>
-              <input type="checkbox" class="sw-toggle" id="optDepth" />
-            </div>
-            <div class="sw-row">
-              <span class="sw-row-label">Parallax<em>Layers shift slightly as you move the pointer.</em></span>
-              <input type="checkbox" class="sw-toggle" id="optParallax" />
-            </div>
-            <div class="sw-row">
-              <span class="sw-row-label">Foreground Layer<em id="depthStatus">Select one of your photos first.</em></span>
-              <span class="sw-btn-group">
-                <button class="sw-btn blue" id="addDepthBtn">Add PNG</button>
-                <button class="sw-btn grey" id="removeDepthBtn" hidden>Remove</button>
-                <input type="file" id="depthInput" accept="image/png,image/webp" hidden />
-              </span>
-            </div>
-            <div class="sw-note">Pair a wallpaper with a transparent <b>PNG</b> of its subject. Tools like <b>remove.bg</b> or the iOS Photos "lift subject" gesture produce one in seconds.</div>
-          </div>
 
           <h3 class="sw-label">Effects</h3>
           <div class="sw-card">
@@ -635,9 +580,9 @@
               <span class="sw-row-label">Background Tint Opacity</span>
               <span class="sw-slider">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="6" width="16" height="12" rx="2"/></svg>
-                <input type="range" id="optTint" min="0" max="100" step="1" value="10" />
+                <input type="range" id="optTint" min="0" max="100" step="1" value="20" />
                 <svg viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="6" width="16" height="12" rx="2"/></svg>
-                <output class="sw-slider-value" id="optTintValue">10%</output>
+                <output class="sw-slider-value" id="optTintValue">20%</output>
               </span>
             </div>
           </div>
@@ -668,10 +613,7 @@
               <span class="sw-row-label">Bing<em>Daily wallpaper</em></span>
               <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></span>
             </a>
-            <a class="sw-row link" href="https://calendar.google.com" target="_blank" rel="noopener">
-              <span class="sw-row-label">Google Calendar<em>Today's events</em></span>
-              <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></span>
-            </a>
+
           </div>
 
           <h3 class="sw-label">Backup</h3>
@@ -710,6 +652,7 @@
   </div>
 
   <script src="quotes.js"></script>
+  <script src="wallpapers.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
