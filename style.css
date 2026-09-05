@@ -279,8 +279,11 @@ body[data-mode="light"] .bg::after {
   line-height: .92;
   letter-spacing: -.02em;
   font-variant-numeric: tabular-nums;
-  color: var(--clock-light, #F5F2EF);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75), 0 4px 18px rgba(0, 0, 0, 0.50), 0 12px 36px rgba(0, 0, 0, 0.38);
+  color: var(--clock-light, #ffffff);
+  text-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.70),
+    0 4px 14px rgba(0, 0, 0, 0.45),
+    0 10px 30px rgba(0, 0, 0, 0.35);
   user-select: none;
 }
 
@@ -312,8 +315,10 @@ body[data-mode="light"] .bg::after {
   font-size: 28px; font-weight: 600;
   letter-spacing: -.01em;
   text-transform: none;
-  color: var(--clock-light, #F5F2EF);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.70), 0 3px 14px rgba(0, 0, 0, 0.45);
+  color: var(--clock-light, #ffffff);
+  text-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.75),
+    0 3px 12px rgba(0, 0, 0, 0.45);
   opacity: .95;
   user-select: none;
 }
@@ -1183,19 +1188,36 @@ body[data-clock-font="playfair"] .date {
   letter-spacing: .02em;
 }
 
-/* clock & date colour matching
-   "light"/"dark" pin the exact same two looks "auto" can produce — just fixed
-   instead of chosen dynamically — so they never look like a separate, flatter
-   palette. That pinning happens in JS by forcing data-auto-dark, so both
-   modes are driven by the single rule below. */
+/* clock & date colour matching */
 body[data-auto-dark="1"] .clock {
-  color: var(--clock-dark, #2b221a) !important;
-  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.85), 0 4px 18px rgba(255, 255, 255, 0.50), 0 12px 32px rgba(255, 255, 255, 0.35) !important;
+  color: #1a1e24 !important;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.60), 0 2px 8px rgba(255, 255, 255, 0.25) !important;
   filter: none !important;
 }
 body[data-auto-dark="1"] .date {
-  color: var(--clock-dark, #2b221a) !important;
-  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.80), 0 3px 14px rgba(255, 255, 255, 0.45) !important;
+  color: #1a1e24 !important;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.50) !important;
+  filter: none !important;
+}
+
+body[data-clock-color="light"] .clock,
+body[data-clock-color="light"] .date {
+  color: #ffffff !important;
+  text-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.70),
+    0 4px 14px rgba(0, 0, 0, 0.45),
+    0 10px 30px rgba(0, 0, 0, 0.35) !important;
+  filter: none !important;
+}
+
+body[data-clock-color="dark"] .clock {
+  color: #1a1e24 !important;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.60), 0 2px 8px rgba(255, 255, 255, 0.25) !important;
+  filter: none !important;
+}
+body[data-clock-color="dark"] .date {
+  color: #1a1e24 !important;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.50) !important;
   filter: none !important;
 }
 
@@ -2002,8 +2024,9 @@ body[data-mode="light"][data-bgtype="bing"] .bg-credit { color: rgba(255,255,255
 body[data-bgtype="unsplash"] .vignette,
 body[data-bgtype="photo"] .vignette {
   background:
-    radial-gradient(ellipse 100% 80% at 50% 45%, transparent 50%, rgba(0,0,0,.25) 100%),
-    linear-gradient(to bottom, rgba(0,0,0,.12), transparent 28%, transparent 72%, rgba(0,0,0,.22));
+    radial-gradient(ellipse 85% 70% at 50% 46%, rgba(0, 0, 0, 0.16) 0%, rgba(0, 0, 0, 0.05) 50%, transparent 75%),
+    radial-gradient(ellipse 100% 80% at 50% 45%, transparent 50%, rgba(0, 0, 0, 0.28) 100%),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.14), transparent 28%, transparent 72%, rgba(0, 0, 0, 0.24));
 }
 
 /* ---------------- Quote settings ---------------- */

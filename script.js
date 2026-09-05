@@ -59,7 +59,7 @@ const DEFAULTS = {
   unsplashCat: "all",
   bgRotate: "tab", depth: false, parallax: true,
   tint: 20, blur: 10, grain: true,
-  scale: "larger", clockFont: "default", clockColor: "dark", clockCustomColor: "#ffffff",
+  scale: "larger", clockFont: "default", clockColor: "auto", clockCustomColor: "#ffffff",
   snap: true, positions: {},
   lowPerf: false,
   customGradient: { c1: "#6effbb", c2: "#0a6f8a" },
@@ -96,6 +96,7 @@ try {
   const cached = localStorage.getItem("liquidtab_cached_settings") || localStorage.getItem("liquidtab:settings");
   if (cached) {
     const s = JSON.parse(cached);
+    if (s.clockColor === "dark") s.clockColor = "auto";
     settings = { ...DEFAULTS, ...s };
   }
   const cachedShortcuts = localStorage.getItem("liquidtab_cached_shortcuts");
@@ -120,21 +121,26 @@ const saveMyQuotes  = () => chrome.storage.local.set({ myQuotes: MY_QUOTES });
 
 function loadState() {
   chrome.storage.local.get(["settings", "shortcuts", "myQuotes"], (result) => {
+    const prevBgType = settings.bgType;
+    const prevUnsplashCat = settings.unsplashCat;
+    const prevPhotoId = settings.photoId;
+    const prevBg = settings.bg;
+
     if (result.settings) settings = { ...DEFAULTS, ...result.settings };
     if (!settings.layoutPreset) {
       settings.showQuote = true;
       settings.positions = {};
       settings.layoutPreset = "clean-default";
       settings.tint = 20;
-      settings.clockColor = "dark";
+      settings.clockColor = "auto";
       saveSettings();
     }
     if (settings.tint === 10) {
       settings.tint = 20;
       saveSettings();
     }
-    if (settings.clockColor === "auto") {
-      settings.clockColor = "dark";
+    if (settings.clockColor === "dark") {
+      settings.clockColor = "auto";
       saveSettings();
     }
     if (!settings.defaultScaleUpgraded) {
@@ -192,6 +198,9 @@ function loadState() {
     requestAnimationFrame(() => {
       document.body.classList.remove("preload");
     });
+    if (settings.bgType !== prevBgType || settings.unsplashCat !== prevUnsplashCat || settings.photoId !== prevPhotoId || settings.bg !== prevBg) {
+      applyWallpaper();
+    }
   });
 }
 
@@ -350,7 +359,6 @@ function applySettings() {
     body.style.removeProperty("--base");
     body.style.removeProperty("--accent");
   }
-  applyWallpaper();
 
   // widget visibility
   const vis = {
@@ -1662,13 +1670,16 @@ function hashString(str) {
   return Math.abs(h);
 }
 
+// Stable random seed generated ONCE when this tab is opened
+const TAB_ROTATION_SEED = Math.floor(Math.random() * 1000000);
+
 /** A seed that only changes as often as the chosen rotation. */
 function rotationSeed(mode) {
   const d = new Date();
   const day = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
   if (mode === "day")  return day;
   if (mode === "hour") return `${day}-${d.getHours()}`;
-  return String(Math.random());   // every new tab
+  return String(TAB_ROTATION_SEED);   // deterministic for this tab session
 }
 
 function quotePool() {
@@ -1896,8 +1907,16 @@ function setupBgRotateTimer() {
 function rotationIndex(count) {
   if (count <= 0) return 0;
   if (settings.bgRotate === "never") return 0;
-  if (settings.bgRotate === "tab" || settings.bgRotate === "5min" || settings.bgRotate === "15min") {
-    return Math.floor(Math.random() * count);
+  if (settings.bgRotate === "tab") {
+    return TAB_ROTATION_SEED % count;
+  }
+  if (settings.bgRotate === "5min") {
+    const bucket = Math.floor(Date.now() / (5 * 60 * 1000));
+    return bucket % count;
+  }
+  if (settings.bgRotate === "15min") {
+    const bucket = Math.floor(Date.now() / (15 * 60 * 1000));
+    return bucket % count;
   }
   return hashString(rotationSeed(settings.bgRotate)) % count;
 }
@@ -1909,12 +1928,19 @@ function setCredit(text, url) {
   if (url) el.href = url; else el.removeAttribute("href");
 }
 
+let activeWallpaperUrl = null;
+let inFlightWallpaperUrl = null;
+let wallpaperLoadSeq = 0;
+
 function applyUnsplashWallpaper(bump = false) {
   const layer = $("photoLayer");
   const layerNext = $("photoLayerNext");
   if (!layer) return;
   const pool = UNSPLASH_COLLECTIONS[settings.unsplashCat] || UNSPLASH_COLLECTIONS.all;
-  if (!pool || !pool.length) return;
+  if (!pool || !pool.length) {
+    revealApp();
+    return;
+  }
 
   if (bump) {
     currentUnsplashOffset = (currentUnsplashOffset + 1) % pool.length;
@@ -1924,9 +1950,10 @@ function applyUnsplashWallpaper(bump = false) {
   const url = `https://images.unsplash.com/${item.id}?auto=format&fit=crop&w=2560&q=85`;
 
   const currentBg = layer.style.backgroundImage || "";
-  const isAlreadySet = currentBg.includes(item.id);
+  const isAlreadySet = (activeWallpaperUrl === url) || (!bump && currentBg.includes(item.id));
 
   if (isAlreadySet) {
+    activeWallpaperUrl = url;
     setCredit(`Photo by ${item.author} (Unsplash)`, item.link || "https://unsplash.com");
     applyAutoClockContrast(url);
     updateThemePreview(url, item.author ? `By ${item.author}` : "Unsplash HD", "Unsplash Photo");
@@ -1934,10 +1961,21 @@ function applyUnsplashWallpaper(bump = false) {
     return;
   }
 
+  // Prevent duplicate concurrent requests for the same image
+  if (!bump && inFlightWallpaperUrl === url) {
+    return;
+  }
+
+  const thisSeq = ++wallpaperLoadSeq;
+  inFlightWallpaperUrl = url;
+
   // If user explicitly requested next photo, preload and crossfade
   if (bump && layerNext && currentBg) {
     const preloader = new Image();
     preloader.onload = () => {
+      if (thisSeq !== wallpaperLoadSeq) return;
+      inFlightWallpaperUrl = null;
+      activeWallpaperUrl = url;
       layerNext.style.backgroundImage = `url("${url}")`;
       layerNext.style.opacity = "1";
       try { localStorage.setItem("liquidtab_cached_bg", url); } catch (e) {}
@@ -1947,16 +1985,24 @@ function applyUnsplashWallpaper(bump = false) {
       revealApp();
 
       setTimeout(() => {
+        if (thisSeq !== wallpaperLoadSeq) return;
         layer.style.backgroundImage = `url("${url}")`;
         layerNext.style.opacity = "0";
       }, 520);
     };
-    preloader.onerror = () => revealApp();
+    preloader.onerror = () => {
+      if (thisSeq !== wallpaperLoadSeq) return;
+      inFlightWallpaperUrl = null;
+      revealApp();
+    };
     preloader.src = url;
   } else {
     // Normal page load: keep loading screen up until image is 100% fetched and ready
     const preloader = new Image();
     preloader.onload = () => {
+      if (thisSeq !== wallpaperLoadSeq) return;
+      inFlightWallpaperUrl = null;
+      activeWallpaperUrl = url;
       layer.style.backgroundImage = `url("${url}")`;
       try { localStorage.setItem("liquidtab_cached_bg", url); } catch (e) {}
       setCredit(`Photo by ${item.author} (Unsplash)`, item.link || "https://unsplash.com");
@@ -1969,8 +2015,13 @@ function applyUnsplashWallpaper(bump = false) {
       });
     };
     preloader.onerror = () => {
+      if (thisSeq !== wallpaperLoadSeq) return;
+      inFlightWallpaperUrl = null;
       const cached = localStorage.getItem("liquidtab_cached_bg");
-      if (cached) layer.style.backgroundImage = `url("${cached}")`;
+      if (cached && !currentBg) {
+        layer.style.backgroundImage = `url("${cached}")`;
+        activeWallpaperUrl = cached;
+      }
       revealApp();
     };
     preloader.src = url;
@@ -1991,6 +2042,9 @@ function applyWallpaper() {
   }
 
   if (settings.bgType !== "photo") {
+    activeWallpaperUrl = null;
+    inFlightWallpaperUrl = null;
+    wallpaperLoadSeq++;
     layer.style.backgroundImage = "";
     const layerNext = $("photoLayerNext");
     if (layerNext) {
@@ -2005,6 +2059,8 @@ function applyWallpaper() {
   setCredit("");
   allPhotos().then((photos) => {
     if (!photos.length) {
+      activeWallpaperUrl = null;
+      inFlightWallpaperUrl = null;
       layer.style.backgroundImage = "";
       revealApp();
       return;
@@ -2023,8 +2079,13 @@ function applyWallpaper() {
       photoSrc = rec.url;
     }
     if (photoSrc) {
+      const thisSeq = ++wallpaperLoadSeq;
+      inFlightWallpaperUrl = photoSrc;
       const img = new Image();
       img.onload = img.onerror = () => {
+        if (thisSeq !== wallpaperLoadSeq) return;
+        inFlightWallpaperUrl = null;
+        activeWallpaperUrl = photoSrc;
         layer.style.backgroundImage = `url("${photoSrc}")`;
         applyAutoClockContrast(photoSrc);
         updateThemePreview(photoSrc, rec.name || "Custom Photo", "Your Photo");
@@ -2149,8 +2210,12 @@ function sampleImageLuminance(url) {
       return;
     }
 
-    // Fetch as blob to prevent cross-origin canvas security errors (e.g. Bing wallpapers)
-    fetch(url)
+    // Fetch as blob to prevent cross-origin canvas security errors (use small thumbnail for instant sampling)
+    const fetchUrl = (typeof url === "string" && url.includes("images.unsplash.com"))
+      ? url.split("?")[0] + "?w=140&q=50&auto=format&fit=crop"
+      : url;
+
+    fetch(fetchUrl)
       .then((r) => {
         if (!r.ok) throw new Error(r.statusText);
         return r.blob();
@@ -2172,8 +2237,6 @@ function currentWallpaperUrl() {
 }
 
 function applyAutoClockContrast(directUrl = null) {
-  // "light"/"dark" pin one of auto's own two outcomes instead of detecting it —
-  // same rendering either way, just fixed instead of chosen dynamically.
   if (settings.clockColor === "light") { document.body.dataset.autoDark = ""; return; }
   if (settings.clockColor === "dark")  { document.body.dataset.autoDark = "1"; return; }
   if (settings.clockColor !== "auto") {
@@ -2185,7 +2248,7 @@ function applyAutoClockContrast(directUrl = null) {
   };
 
   if (settings.bgType === "solid") {
-    finish(hexLuminance(settings.solidColor) > 0.30);
+    finish(hexLuminance(settings.solidColor) > 0.45);
     return;
   }
 
@@ -2193,8 +2256,8 @@ function applyAutoClockContrast(directUrl = null) {
     const url = directUrl || currentWallpaperUrl();
     if (url) {
       sampleImageLuminance(url)
-        .then((lum) => finish(lum > 0.30))
-        .catch(() => finish(resolvedMode() === "light"));
+        .then((lum) => finish(lum > 0.65))
+        .catch(() => finish(false));
       return;
     }
   }
@@ -2205,7 +2268,7 @@ function applyAutoClockContrast(directUrl = null) {
   } else {
     const theme = settings.bg || "green";
     const lum = THEME_LUMINANCE[theme] !== undefined ? THEME_LUMINANCE[theme] : 0.2;
-    finish(lum > 0.30);
+    finish(lum > 0.55);
   }
 }
 
