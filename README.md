@@ -49,14 +49,12 @@ lume/
 
 ---
 
-## 🎨 Credits
-
+## 🎨 Data & API Credits
+ 
 | Service | Use |
 |---------|-----|
-| [Unsplash](https://unsplash.com) | Background photography |
-| [Open-Meteo](https://open-meteo.com) | Weather data (free, no API key) |
-| [Google Fonts](https://fonts.google.com) | Inter, Outfit, Playfair Display |
-| [DuckDuckGo](https://icons.duckduckgo.com) | Favicon icons for dock |
+| [Unsplash](https://unsplash.com) | Background photography (API Attribution) |
+| [Open-Meteo](https://open-meteo.com) | Weather data (CC BY 4.0 Attribution) |
 
 ---
 
