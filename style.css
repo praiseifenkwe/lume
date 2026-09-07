@@ -2841,13 +2841,3 @@ body[data-mode="light"] .sw-hint-items code {
   color: var(--sw-text-dim);
   font-weight: 600;
 }
-
-/* Footer note */
-.lume-about-footer {
-  font-size: 12px;
-  color: var(--sw-text-mute);
-  text-align: center;
-  margin-top: 24px;
-  padding-bottom: 8px;
-  line-height: 1.6;
-}
