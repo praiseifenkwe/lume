@@ -95,9 +95,7 @@
   <div class="dock-wrap">
     <div class="dock glass" id="dock">
       <span class="dock-divider"></span>
-      <a id="geminiBtn" href="https://gemini.google.com" target="_blank" rel="noopener" data-label="Gemini" class="dock-sys dock-gemini">
-        <img src="icons/gemini.png" alt="Gemini" />
-      </a>
+      <a id="aiBtn" href="https://gemini.google.com" target="_blank" rel="noopener" data-label="Gemini" class="dock-sys dock-ai"></a>
       <a id="settingsBtn" data-label="Settings" class="dock-sys dock-settings">
         <img src="icons/settings.png" alt="Settings" />
       </a>
@@ -148,8 +146,8 @@
         </button>
 
         <button class="sw-nav-item" data-pane="widgets">
-          <span class="ni" style="--ni-a:#4a4a4f;--ni-b:#1c1c1e">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18"/></svg>
+          <span class="ni" style="--ni-a:#5856d6;--ni-b:#3634a3">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
           </span>
           <span>Widgets</span>
         </button>
@@ -161,18 +159,18 @@
           <span>Quotes</span>
         </button>
 
-        <button class="sw-nav-item" data-pane="display">
-          <span class="ni" style="--ni-a:#5ac8fa;--ni-b:#0a84ff">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-          </span>
-          <span>Display</span>
-        </button>
-
         <button class="sw-nav-item" data-pane="appearance">
-          <span class="ni" style="--ni-a:#64d2ff;--ni-b:#32ade6">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m4 17 5-4.5 4 3.5 3-2.5 4 3.5"/></svg>
+          <span class="ni" style="--ni-a:#0a84ff;--ni-b:#0055d6">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
           </span>
           <span>Appearance</span>
+        </button>
+
+        <button class="sw-nav-item" data-pane="about">
+          <span class="ni" style="--ni-a:#ff9f0a;--ni-b:#ff6b00">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          </span>
+          <span>About</span>
         </button>
       </nav>
 
@@ -201,7 +199,12 @@
                 <option value="hello">Hello</option>
                 <option value="welcome">Welcome Back</option>
                 <option value="hey">Hey</option>
+                <option value="custom">Custom...</option>
               </select>
+            </div>
+            <div class="sw-row" id="customGreetRow" style="display:none">
+              <span class="sw-row-label">Custom Phrase</span>
+              <input type="text" class="sw-input" id="optCustomGreet" placeholder="e.g. Rise &amp; Shine" maxlength="32" />
             </div>
           </div>
 
@@ -224,7 +227,7 @@
           <h3 class="sw-label">Advanced</h3>
           <div class="sw-card">
             <div class="sw-row">
-              <span class="sw-row-label"><span class="lbl">Low Performance Mode <b class="badge">BETA</b></span></span>
+              <span class="sw-row-label">Low Performance Mode</span>
               <input type="checkbox" class="sw-toggle" id="optLowPerf" />
             </div>
           </div>
@@ -244,10 +247,10 @@
             </div>
           </div>
 
-          <h3 class="sw-label danger">Reset</h3>
+          <h3 class="sw-label danger">Master Reset</h3>
           <div class="sw-card">
             <div class="sw-row">
-              <span class="sw-row-label">Reset All Settings</span>
+              <span class="sw-row-label">Reset to Defaults</span>
               <button class="sw-btn red" id="resetAll">Reset</button>
             </div>
           </div>
@@ -294,9 +297,11 @@
                 <span class="sw-row-label">Search Engine</span>
                 <select class="sw-select" id="optEngine">
                   <option value="google">Google</option>
+                  <option value="bing">Microsoft Bing</option>
                   <option value="duckduckgo">DuckDuckGo</option>
-                  <option value="bing">Bing</option>
+                  <option value="yahoo">Yahoo</option>
                   <option value="ecosia">Ecosia</option>
+                  <option value="brave">Brave Search</option>
                 </select>
               </div>
             </div>
@@ -325,27 +330,62 @@
                 </select>
               </div>
             </div>
-
-            <h3 class="sw-label danger">Danger Zone</h3>
-            <div class="sw-card">
-              <div class="sw-row">
-                <span class="sw-row-label">Reset Widget Settings</span>
-                <button class="sw-btn red" id="resetWidgets">Reset</button>
-              </div>
-            </div>
           </div>
 
           <div class="sw-tab" data-tab="d">
-            <div class="sw-card tight" id="shortcutList"></div>
-            <button class="sw-btn blue wide" id="addShortcutBtn">+ Add Item</button>
-
-            <h3 class="sw-label">Maintenance</h3>
+            <h3 class="sw-label">Dock &amp; Shortcuts</h3>
             <div class="sw-card">
               <div class="sw-row">
-                <span class="sw-row-label">Reset Dock Settings</span>
-                <button class="sw-btn red" id="resetDock">Reset</button>
+                <span class="sw-row-label">Shortcuts Source</span>
+                <select class="sw-select" id="optDockSource">
+                  <option value="custom">Custom Shortcuts</option>
+                  <option value="topsites">Most Visited (Top Sites)</option>
+                  <option value="bookmarks">Favorites / Bookmarks Bar</option>
+                </select>
+              </div>
+              <div class="sw-row">
+                <span class="sw-row-label">Maximum Dock Items</span>
+                <select class="sw-select" id="optDockLimit">
+                  <option value="3">3 items</option>
+                  <option value="4">4 items</option>
+                  <option value="5" selected>5 items (Default)</option>
+                  <option value="6">6 items</option>
+                  <option value="7">7 items</option>
+                  <option value="8">8 items</option>
+                  <option value="9">9 items</option>
+                  <option value="10">10 items</option>
+                  <option value="12">12 items (Max)</option>
+                </select>
               </div>
             </div>
+
+            <h3 class="sw-label">AI Assistant</h3>
+            <div class="sw-card">
+              <div class="sw-row">
+                <span class="sw-row-label">Show AI Assistant</span>
+                <input type="checkbox" class="sw-toggle" id="optShowAi" />
+              </div>
+              <div class="sw-row" id="aiProviderRow">
+                <span class="sw-row-label">AI Service</span>
+                <select class="sw-select" id="optAiProvider">
+                  <option value="gemini">Google Gemini</option>
+                  <option value="chatgpt">ChatGPT</option>
+                  <option value="claude">Claude</option>
+                  <option value="copilot">Microsoft Copilot</option>
+                  <option value="perplexity">Perplexity</option>
+                  <option value="deepseek">DeepSeek</option>
+                  <option value="custom">Custom AI Service...</option>
+                </select>
+              </div>
+              <div class="sw-row" id="aiCustomUrlRow" style="display:none">
+                <span class="sw-row-label">AI Web URL</span>
+                <input type="text" class="sw-input" id="optAiCustomUrl" placeholder="https://..." />
+              </div>
+            </div>
+
+            <h3 class="sw-label" id="shortcutListLabel">Shortcuts</h3>
+            <div class="sw-card tight" id="shortcutList"></div>
+            <button class="sw-btn blue wide" id="addShortcutBtn">+ Add Item</button>
           </div>
         </section>
 
@@ -357,15 +397,6 @@
             </span>
             <h1>Quotes</h1>
           </header>
-
-          <h3 class="sw-label">Source</h3>
-          <div class="sw-card pad">
-            <div class="sw-segment" id="quoteSourceSeg" style="margin-bottom:0">
-              <button class="active" data-src="builtin">Built-in</button>
-              <button data-src="mine">Mine Only</button>
-              <button data-src="both">Both</button>
-            </div>
-          </div>
 
           <h3 class="sw-label">Rotation</h3>
           <div class="sw-card">
@@ -384,58 +415,50 @@
             </div>
           </div>
 
-          <h3 class="sw-label">Categories</h3>
-          <div class="sw-card" id="quoteCats"></div>
-
-          <h3 class="sw-label">My Quotes</h3>
-          <div class="sw-card tight" id="myQuoteList"></div>
-          <button class="sw-btn blue wide" id="addQuoteBtn">+ Add Quote</button>
-        </section>
-
-
-
-        <!-- ============ Display ============ -->
-        <section class="sw-pane" data-pane="display">
-          <header class="sw-title">
-            <span class="ni lg" style="--ni-a:#5ac8fa;--ni-b:#0a84ff">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-            </span>
-            <h1>Display</h1>
-          </header>
-
-          <h3 class="sw-label">Interface Size</h3>
-          <div class="sw-card pad">
-            <div class="sw-tiles" id="scaleTiles">
-              <button class="sw-tile active" data-scale="larger"><span class="prev p-lg"><i></i><i></i><i></i></span><span class="cap">Larger Text</span></button>
-              <button class="sw-tile" data-scale="medium"><span class="prev p-md"><i></i><i></i><i></i><i></i></span><span class="cap">Medium Text</span></button>
-              <button class="sw-tile" data-scale="default"><span class="prev p-df"><i></i><i></i><i></i><i></i><i></i></span><span class="cap">Default</span></button>
-              <button class="sw-tile" data-scale="more"><span class="prev p-sm"><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="cap">More Space</span></button>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:24px; margin-bottom:8px;">
+            <h3 class="sw-label" style="margin:0;">Authors &amp; Collections</h3>
+            <div style="display:flex; gap:6px;">
+              <button class="sw-btn blue sm" id="openAddQuoteBtn">+ Add Quote</button>
+              <button class="sw-btn grey sm" id="importQuotesBtn">Import File</button>
+              <input type="file" id="quoteFileInput" accept=".json,.csv,.tsv,.txt,.md" hidden />
             </div>
           </div>
 
-          <h3 class="sw-label">Clock</h3>
-          <div class="sw-card">
-            <div class="sw-row">
-              <span class="sw-row-label">Clock Font</span>
-              <select class="sw-select" id="optClockFont">
-                <option value="default">Default</option>
-                <option value="outfit">Outfit</option>
-                <option value="playfair">Playfair Display</option>
-              </select>
-            </div>
-            <div class="sw-row">
-              <span class="sw-row-label">Clock Color</span>
-              <span class="sw-dots" id="clockColors">
-                <button class="dot active" data-cc="auto" title="Auto &mdash; adapts to what's behind it" style="background:linear-gradient(160deg,#F5F2EF,#332D29)"></button>
-                <button class="dot" data-cc="light" title="Light" style="background:linear-gradient(160deg,#ffffff,#F5F2EF)"></button>
-                <button class="dot" data-cc="dark" title="Dark" style="background:linear-gradient(160deg,#4a3c2e,#332D29)"></button>
-                <label class="dot cc-custom" data-cc="custom" title="Custom colour">
-                  <input type="color" id="clockCustomColor" />
-                </label>
-              </span>
+          <!-- Collapsible Add Quote Drawer -->
+          <div class="sw-card pad" id="addQuoteDrawer" style="display:none; margin-bottom:12px;">
+            <div style="font-size:12.5px; font-weight:600; margin-bottom:8px; color:var(--sw-text);">Add New Quote</div>
+            <textarea class="sw-input" id="newQuoteText" placeholder="Write or paste quote here..." rows="3" style="width:100%; resize:vertical; margin-bottom:8px; font-size:12.5px; line-height:1.4;"></textarea>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <input type="text" class="sw-input" id="newQuoteAuthor" placeholder="Author name (e.g. Marcus Aurelius, Steve Jobs)" list="quoteAuthorList" style="flex:1; font-size:12.5px;" />
+              <button class="sw-btn blue sm" id="saveNewQuoteBtn">Save Quote</button>
+              <button class="sw-btn grey sm" id="cancelNewQuoteBtn">Cancel</button>
             </div>
           </div>
+          <datalist id="quoteAuthorList"></datalist>
+
+          <div class="sw-card tight" id="quoteCats"></div>
+
+          <div class="sw-quote-format-hint">
+            <span class="sw-hint-title">Supported Import Formats:</span>
+            <div class="sw-hint-items">
+              <span><b>JSON:</b> <code>[{"text": "...", "author": "..."}]</code></span>
+              <span><b>CSV / TSV:</b> <code>"Quote text", "Author"</code></span>
+              <span><b>Plain Text:</b> <code>Quote text — Author</code></span>
+            </div>
+          </div>
+
+          <div class="reset-quotes-row" id="resetQuotesRow" style="display:none;">
+            <div class="reset-quotes-info">
+              <span class="reset-quotes-title">Reset Quotes to Default</span>
+              <span class="reset-quotes-sub">Restore all built-in collections and remove custom additions</span>
+            </div>
+            <button class="sw-btn red sm" id="restoreQuoteCollectionsBtn">↺ Reset to Default</button>
+          </div>
         </section>
+
+
+
+
 
         <!-- ============ Appearance ============ -->
         <section class="sw-pane" data-pane="appearance">
@@ -575,7 +598,7 @@
             <!-- 3. Solid (Presets + Custom Picker + Recently Used) -->
             <div class="bg-tab" data-bgtype="solid">
               <div class="sw-row">
-                <span class="sw-row-label">Presets</span>
+                <span class="sw-row-label">Color</span>
                 <span class="sw-dots" id="solidPresets">
                   <button class="dot" data-solid="#0d1117" title="Obsidian" style="background:#0d1117"></button>
                   <button class="dot" data-solid="#1b2a4a" title="Midnight Navy" style="background:#1b2a4a"></button>
@@ -583,15 +606,9 @@
                   <button class="dot" data-solid="#4a1e42" title="Royal Plum" style="background:#4a1e42"></button>
                   <button class="dot" data-solid="#8c3b2b" title="Terracotta" style="background:#8c3b2b"></button>
                   <button class="dot" data-solid="#2d3748" title="Slate Graphite" style="background:#2d3748"></button>
-                  <button class="dot" data-solid="#8a5a1f" title="Warm Amber" style="background:#8a5a1f"></button>
-                  <button class="dot" data-solid="#f1f5f9" title="Pure Snow" style="background:#f1f5f9"></button>
-                </span>
-              </div>
-              <div class="sw-row">
-                <span class="sw-row-label">Custom Colour</span>
-                <span class="sw-colour">
-                  <input type="color" id="optSolid" />
-                  <span id="optSolidHex">#101418</span>
+                  <label class="dot cc-custom" title="Custom colour">
+                    <input type="color" id="optSolid" />
+                  </label>
                 </span>
               </div>
               <div class="sw-row" id="solidRecentRow" style="display:none">
@@ -644,9 +661,173 @@
               </span>
             </div>
           </div>
+
+          <h3 class="sw-label">Interface Size</h3>
+          <div class="sw-card pad">
+            <div class="sw-tiles" id="scaleTiles">
+              <button class="sw-tile active" data-scale="larger"><span class="prev p-lg"><i></i><i></i><i></i></span><span class="cap">Larger Text</span></button>
+              <button class="sw-tile" data-scale="medium"><span class="prev p-md"><i></i><i></i><i></i><i></i></span><span class="cap">Medium Text</span></button>
+              <button class="sw-tile" data-scale="default"><span class="prev p-df"><i></i><i></i><i></i><i></i><i></i></span><span class="cap">Default</span></button>
+              <button class="sw-tile" data-scale="more"><span class="prev p-sm"><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="cap">More Space</span></button>
+            </div>
+          </div>
+
+          <h3 class="sw-label">Clock Styling</h3>
+          <div class="sw-card">
+            <div class="sw-row">
+              <span class="sw-row-label">Clock Font</span>
+              <select class="sw-select" id="optClockFont">
+                <option value="default">Default</option>
+                <option value="outfit">Outfit</option>
+                <option value="playfair">Playfair Display</option>
+              </select>
+            </div>
+            <div class="sw-row">
+              <span class="sw-row-label">Clock Color</span>
+              <span class="sw-dots" id="clockColors">
+                <button class="dot active" data-cc="auto" title="Auto &mdash; adapts to what's behind it" style="background:linear-gradient(160deg,#F5F2EF,#332D29)"></button>
+                <button class="dot" data-cc="light" title="Light" style="background:linear-gradient(160deg,#ffffff,#F5F2EF)"></button>
+                <button class="dot" data-cc="dark" title="Dark" style="background:linear-gradient(160deg,#4a3c2e,#332D29)"></button>
+                <label class="dot cc-custom" data-cc="custom" title="Custom colour">
+                  <input type="color" id="clockCustomColor" />
+                </label>
+              </span>
+            </div>
+            <div class="sw-row" id="clockRecentRow" style="display:none">
+              <span class="sw-row-label">Recently Used</span>
+              <span class="sw-dots" id="clockRecents"></span>
+            </div>
+          </div>
         </section>
 
 
+
+        <!-- ============ About ============ -->
+        <section class="sw-pane" data-pane="about">
+          <header class="sw-title">
+            <span class="ni lg" style="--ni-a:#ff9f0a;--ni-b:#ff6b00">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+            </span>
+            <h1>About</h1>
+          </header>
+
+          <!-- Logo / Identity card -->
+          <div class="lume-about-hero">
+            <div class="lume-about-logo">
+              <img src="icons/icon-128.png" width="56" height="56" alt="Lume" class="lume-about-icon-img" />
+            </div>
+            <div class="lume-about-identity">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span class="lume-about-name">Lume</span>
+                <span class="lume-badge-chip">v4.1</span>
+              </div>
+              <span class="lume-about-sub">Minimalist Tab &amp; Focus Engine</span>
+            </div>
+          </div>
+
+          <p class="lume-about-tagline">A calm, radiant new tab experience with dynamic wallpapers, curated daily wisdom, and intuitive focus widgets — crafted with care.</p>
+
+          <!-- Creator -->
+          <h3 class="sw-label" style="margin-top:22px;">Creator</h3>
+          <div class="sw-card">
+            <div class="lume-creator-row">
+              <div class="lume-creator-avatar" id="lumeCreatorAvatar">
+                <img src="icons/creator.png" class="lume-creator-avatar-img" alt="Praise Ifenkwe" />
+              </div>
+              <div class="lume-creator-info">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span class="lume-creator-name">Praise Ifenkwe</span>
+                  <span class="lume-verified-badge" title="Verified Author">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="#0a84ff"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                  </span>
+                </div>
+                <span class="lume-creator-handle">@praise_ifenkwe · Creator &amp; Software Developer</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Project & Socials -->
+          <h3 class="sw-label" style="margin-top:20px;">Project &amp; Socials</h3>
+          <div class="sw-card">
+            <!-- Star Project on GitHub -->
+            <a class="lume-about-link" href="https://github.com/praiseifenkwe/tab-extension" target="_blank" rel="noopener" id="lumeRepoLink">
+              <span class="lume-about-link-icon github">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.014-1.703-2.782.604-3.369-1.34-3.369-1.34-.454-1.154-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.004.07 1.532 1.03 1.532 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.744 0 .267.18.579.688.481C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+              </span>
+              <div class="lume-link-text">
+                <span class="lume-about-link-label">Star Lume on GitHub</span>
+                <span class="lume-link-sub">praiseifenkwe/tab-extension</span>
+              </div>
+              <span class="lume-chip-gold">★ Star</span>
+            </a>
+
+            <!-- Follow Creator on GitHub -->
+            <a class="lume-about-link" href="https://github.com/praiseifenkwe" target="_blank" rel="noopener" id="lumeGithubProfileLink">
+              <span class="lume-about-link-icon github">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+              </span>
+              <div class="lume-link-text">
+                <span class="lume-about-link-label">Follow on GitHub</span>
+                <span class="lume-link-sub">@praiseifenkwe</span>
+              </div>
+              <span class="lume-about-link-arrow">→</span>
+            </a>
+
+            <!-- Follow on X / Twitter -->
+            <a class="lume-about-link" href="https://x.com/praise_ifenkwe" target="_blank" rel="noopener" id="lumeTwitterLink">
+              <span class="lume-about-link-icon x-twitter">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+              </span>
+              <div class="lume-link-text">
+                <span class="lume-about-link-label">Follow on X (Twitter)</span>
+                <span class="lume-link-sub">@praise_ifenkwe</span>
+              </div>
+              <span class="lume-about-link-arrow">→</span>
+            </a>
+
+            <!-- Buy Me a Coffee -->
+            <a class="lume-about-link" href="https://buymeacoffee.com/praiseifenkwe" target="_blank" rel="noopener" id="lumeCoffeeLink">
+              <span class="lume-about-link-icon coffee">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/></svg>
+              </span>
+              <div class="lume-link-text">
+                <span class="lume-about-link-label">Buy Me a Coffee</span>
+                <span class="lume-link-sub">buymeacoffee.com/praiseifenkwe</span>
+              </div>
+              <span class="lume-chip-amber">☕ Support</span>
+            </a>
+          </div>
+
+          <!-- License -->
+          <h3 class="sw-label" style="margin-top:20px;">License</h3>
+          <div class="sw-card pad">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span class="lume-about-link-icon" style="background:rgba(52,199,89,0.15); color:#34c759;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </span>
+                <div>
+                  <div style="font-size:13px; font-weight:600; color:var(--sw-text);">MIT License</div>
+                  <div style="font-size:11.5px; color:var(--sw-label);">Free &amp; open-source software for personal &amp; commercial use</div>
+                </div>
+              </div>
+              <span class="lume-badge-chip green">Open Source</span>
+            </div>
+          </div>
+
+          <!-- Acknowledgements -->
+          <h3 class="sw-label" style="margin-top:20px;">Open Source &amp; Credits</h3>
+          <div class="sw-card">
+            <div class="lume-credits-list">
+              <div class="lume-credit-item">Photos provided by <strong>Unsplash</strong> — unsplash.com</div>
+              <div class="lume-credit-item">Weather forecasts by <strong>Open-Meteo</strong> — open-meteo.com</div>
+              <div class="lume-credit-item">Typography powered by <strong>Google Fonts</strong> — fonts.google.com</div>
+              <div class="lume-credit-item">Shortcut icons by <strong>DuckDuckGo &amp; Google S2</strong></div>
+            </div>
+          </div>
+
+          <p class="lume-about-footer">Made with ❤️ by Praise Ifenkwe · If Lume brightens your day, a ⭐ on GitHub goes a long way.</p>
+        </section>
 
         <!-- ============ Search results ============ -->
         <section class="sw-pane" data-pane="results">

@@ -1,5 +1,5 @@
 /* ============================================================
-   Liquid Tab 3.0
+   Lume 4.1
    ============================================================ */
 
 const $  = (id) => document.getElementById(id);
@@ -45,22 +45,28 @@ const DEFAULT_SHORTCUTS = [
   { name: "Google Drive", url: "https://drive.google.com" },
 ];
 
-const ALL_CATS = Object.keys(QUOTE_CATEGORIES);
+const ALL_CATS = ["Alex Hormozi", "Leila Hormozi"];
 
 const DEFAULTS = {
-  userName: "", greetStyle: "timeofday",
+  userName: "", greetStyle: "timeofday", customGreet: "Rise & Shine",
   showIsland: true, islandCycle: true,
   showClock: true, showDate: true, use24hr: true, showSeconds: true,
   showSearch: true, engine: "google",
-  showQuote: true, quoteSource: "builtin", quoteRotate: "tab", quoteCats: [...ALL_CATS],
+  showQuote: true, quoteRotate: "tab", quoteCats: [...ALL_CATS], excludedQuotes: [],
   showWeather: true, unit: "celsius", manualLocation: null,
   mode: "dark",
   bg: "green", bgType: "unsplash", solidColor: "#101418", photoId: null,
   unsplashCat: "all",
-  bgRotate: "tab", depth: false, parallax: true,
+  bgRotate: { unsplash: "tab", photo: "never", gradient: "never", solid: "never" }, depth: false, parallax: true,
   tint: 20, blur: 10, grain: true,
   scale: "larger", clockFont: "default", clockColor: "auto", clockCustomColor: "#ffffff",
+  recentClockColors: [],
   snap: true, positions: {},
+  dockSource: "custom",
+  dockLimit: 5,
+  showAi: true,
+  aiProvider: "gemini",
+  aiCustomUrl: "",
   lowPerf: false,
   customGradient: { c1: "#6effbb", c2: "#0a6f8a" },
   recentSolidColors: ["#1b2a4a", "#144234", "#4a1e42", "#8c3b2b", "#2d3748"],
@@ -70,6 +76,108 @@ let settings  = { ...DEFAULTS };
 let SHORTCUTS = DEFAULT_SHORTCUTS.map((s) => ({ ...s }));
 let MY_QUOTES = [];
 
+function normalizeAuthorName(name) {
+  const trimmed = (name || "").trim();
+  if (!trimmed) return "Unknown Author";
+  if (/^alex\s*hormozi$/i.test(trimmed) || trimmed.toLowerCase() === "alex") return "Alex Hormozi";
+  if (/^leila\s*hormozi$/i.test(trimmed) || trimmed.toLowerCase() === "leila") return "Leila Hormozi";
+  return trimmed;
+}
+
+function normalizeQuoteText(text) {
+  return (text || "").trim().toLowerCase().replace(/^["“](.*)["”]$/, "$1").trim();
+}
+
+function getAllAuthors() {
+  const authorCounts = new Map();
+  const excludedSet = new Set(
+    (settings.excludedQuotes || []).map(normalizeQuoteText)
+  );
+
+  if (typeof QUOTES !== "undefined" && Array.isArray(QUOTES)) {
+    QUOTES.forEach((q) => {
+      const textNorm = normalizeQuoteText(q[0]);
+      if (excludedSet.has(textNorm)) return;
+      const author = normalizeAuthorName(q[1]);
+      authorCounts.set(author, (authorCounts.get(author) || 0) + 1);
+    });
+  }
+
+  if (Array.isArray(MY_QUOTES)) {
+    MY_QUOTES.forEach((q) => {
+      const text = (q.text || "").trim();
+      if (!text) return;
+      const author = normalizeAuthorName(q.author);
+      authorCounts.set(author, (authorCounts.get(author) || 0) + 1);
+    });
+  }
+
+  // Only include built-in priority authors if they have at least 1 active quote
+  const result = [];
+  const priority = ["Alex Hormozi", "Leila Hormozi"];
+  priority.forEach((p) => {
+    const c = authorCounts.get(p) || 0;
+    if (c > 0) {
+      result.push({ name: p, count: c });
+    }
+    authorCounts.delete(p);
+  });
+
+  const others = [...authorCounts.entries()]
+    .filter(([, count]) => count > 0)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  return result.concat(others);
+}
+
+function updateAuthorDatalist() {
+  const dl = $("quoteAuthorList");
+  if (!dl) return;
+  dl.innerHTML = "";
+  const authors = getAllAuthors();
+  authors.forEach(({ name }) => {
+    if (name !== "Unknown Author") {
+      const opt = document.createElement("option");
+      opt.value = name;
+      dl.appendChild(opt);
+    }
+  });
+}
+
+const SOLID_PRESET_COLORS = [
+  // Darks
+  "#0d1117", "#111827", "#1a1a2e", "#0f0f23", "#13111c",
+  // Blues
+  "#0a1628", "#0d2137", "#1b2a4a", "#0c2340", "#071e3d",
+  // Greens
+  "#0a1f16", "#0d2818", "#144234", "#0f2d20", "#102b1a",
+  // Purples / Magentas
+  "#1e0a2e", "#2a0a3e", "#4a1e42", "#1f0d38", "#3a1048",
+  // Earthy / Warm
+  "#1e1008", "#2b1510", "#3d1a0e", "#8c3b2b", "#4a2010",
+  // Neutral slates
+  "#1c1c24", "#2d3748", "#252836", "#1e2130", "#202633",
+];
+const GRADIENT_THEMES = ["green", "blue", "purple", "sunset", "rose", "mono", "dark"];
+
+function getBgRotate(type = settings.bgType) {
+  if (typeof settings.bgRotate === "object" && settings.bgRotate !== null) {
+    return settings.bgRotate[type] || (type === "unsplash" ? "tab" : "never");
+  }
+  const val = typeof settings.bgRotate === "string" ? settings.bgRotate : "tab";
+  return type === "unsplash" ? val : "never";
+}
+
+function setBgRotate(mode, type = settings.bgType) {
+  if (typeof settings.bgRotate !== "object" || settings.bgRotate === null) {
+    const oldVal = typeof settings.bgRotate === "string" ? settings.bgRotate : "tab";
+    settings.bgRotate = { unsplash: oldVal, photo: "never", gradient: "never", solid: "never" };
+  }
+  settings.bgRotate[type] = mode;
+  saveSettings();
+}
+
 const THEMES = {
   green: "Verdant", blue: "Deep Sea", purple: "Nebula", sunset: "Ember",
   rose: "Blossom", mono: "Graphite", dark: "Midnight", custom: "Custom",
@@ -77,11 +185,12 @@ const THEMES = {
 
 const ENGINES = {
   google:     { name: "Google",     url: "https://www.google.com/search?q=" },
-  duckduckgo: { name: "DuckDuckGo", url: "https://duckduckgo.com/?q=" },
   bing:       { name: "Bing",       url: "https://www.bing.com/search?q=" },
+  duckduckgo: { name: "DuckDuckGo", url: "https://duckduckgo.com/?q=" },
+  yahoo:      { name: "Yahoo",      url: "https://search.yahoo.com/search?p=" },
   ecosia:     { name: "Ecosia",     url: "https://www.ecosia.org/search?q=" },
+  brave:      { name: "Brave",      url: "https://search.brave.com/search?q=" },
 };
-
 
 const GOOGLE_MARK = `<svg viewBox="0 0 24 24">
   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/>
@@ -89,7 +198,65 @@ const GOOGLE_MARK = `<svg viewBox="0 0 24 24">
   <path fill="#FBBC05" d="M5.84 14.11a6.6 6.6 0 0 1 0-4.22V7.05H2.18a11 11 0 0 0 0 9.9l3.66-2.84z"/>
   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1a11 11 0 0 0-9.82 6.05l3.66 2.84C6.71 7.3 9.14 5.38 12 5.38z"/>
 </svg>`;
+
+const BING_MARK = `<svg viewBox="120 50 280 400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bingA" x2="0" y2="1"><stop offset="0" stop-color="#3bc0f6"/><stop offset=".5" stop-color="#3693fa"/><stop offset="1" stop-color="#1b42d8"/></linearGradient>
+    <linearGradient id="bingB"><stop offset="0" stop-color="#5fe9ff"/><stop offset=".5" stop-color="#4bb1f1"/><stop offset="1" stop-color="#1440df"/></linearGradient>
+    <radialGradient id="bingC" cx="1" cy=".7" r="1"><stop offset="0" stop-color="#6adfd4"/><stop offset=".5" stop-color="#15d2e5"/><stop offset="1" stop-color="#36befe"/></radialGradient>
+  </defs>
+  <path d="m143 343c0 72 84 124 147 84l62-39c51-32 23-79-6-88l-115 69" fill="url(#bingB)"/>
+  <path d="m167 71c-11-8-24 0-24 11v261c0 38 39 56 67 39l21-13V134q-1-21-22-35" fill="url(#bingA)"/>
+  <path d="m279 186c-13-7-26 7-19 20l26 67q5 9 15 13c43 16 58 15 71 35s6 43-5 55c42-44 37-127-30-160" fill="url(#bingC)"/>
+</svg>`;
+
+const DUCK_MARK = `<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <linearGradient id="ddgBg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#e55225"/><stop offset="1" stop-color="#d14427"/></linearGradient>
+    <linearGradient id="ddgBrow" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#6176b9"/><stop offset="1" stop-color="#394a9f"/></linearGradient>
+    <clipPath id="ddgClip"><circle cx="256" cy="256" r="224"/></clipPath>
+  </defs>
+  <circle cx="256" cy="256" r="240" fill="url(#ddgBg)"/>
+  <g clip-path="url(#ddgClip)">
+    <path d="M355.3 575.7c-7.7-35.6-52.6-116-69.6-150.1-17-34-34-82-26.3-112.9 1.4-5.6 1.5-28.6 6.1-31.7 36.1-23.6 33.5-.8 48-11.3 7.5-5.4 13.4-12 16-21.1 9.3-32.5-12.9-89.1-37.6-113.8-8.1-8.1-20.5-13.1-34.4-15.8-5.4-7.4-14-14.4-26.3-20.9-23.1-12.3-51.8-17.2-78.4-12.4 4.2.4 14 9.2 17.9 9.8-5.9 4-21.7 3.5-21.6 12.4 21.1-2.1 44.2 1.2 63.7 9.9-15.5 1.8-29.8 5.6-40 10.9-29.4 15.5-37.1 46.4-29.4 89.7 7.8 43.3 41.8 201.1 52.6 253.7s-23.2 86.6-44.8 95.9l23.2 1.5-7.7 17c27.8 3.1 58.8-6.2 58.8-6.2-6.2 17-48 23.2-48 23.2s20.1 6.2 52.6-6.2 52.6-20.1 52.6-20.1l15.5 40.2 29.4-29.4 12.4 30.9c-.1.1 23.1-7.6 15.3-43.2" fill="#FFFFFF"/>
+    <circle cx="193.6" cy="220.5" r="16.2" fill="#2d4f8e"/>
+    <circle cx="200.9" cy="215.1" r="4.2" fill="#FFFFFF"/>
+    <circle cx="302.3" cy="210.9" r="14" fill="#2d4f8e"/>
+    <circle cx="308.5" cy="206.2" r="3.6" fill="#FFFFFF"/>
+    <path d="M198.3 173.4s-12.2-5.5-24.2 1.9c-11.9 7.5-11.4 15.1-11.4 15.1s-6.3-14.1 10.5-21c16.9-6.8 25.1 4 25.1 4" fill="url(#ddgBrow)"/>
+    <path d="M310.7 172.3s-8.8-5-15.6-4.9c-14 .2-17.9 6.4-17.9 6.4s2.4-14.8 20.3-11.8c9.8 1.5 13.2 10.3 13.2 10.3" fill="url(#ddgBrow)"/>
+  </g>
+  <path d="M243.4 283.2c1.6-9.8 27-28.4 45-29.6 18-1.1 23.6-.9 38.7-4.5s53.8-13.3 64.5-18.2c10.7-5 56.2 2.5 24.2 20.3-13.9 7.8-51.3 22-78 30s-42.9-7.6-51.7 5.5c-7.1 10.4-1.4 24.7 30.5 27.7 43.1 4 84.4-19.4 88.9-7 4.6 12.4-37 27.9-62.3 28.4s-76.3-16.7-83.9-22c-7.8-5.3-18-17.7-15.9-30.6" fill="#fdd20a"/>
+  <path d="M262.9 417.5s-60.5-32.3-61.5-19.2 0 66.5 7.1 70.6c7.1 4 57.5-26.2 57.5-26.2zm23.2-2.1s41.3-31.3 50.4-29.2 11.1 66.6 3 69.6-55.4-16.4-55.4-16.4z" fill="#65bc46"/>
+  <path d="M252.1 416.2c0 21.2-3 30.3 6.1 32.3 9 2 26.2 0 32.3-4s1-31.2-1-36.3c-2.1-5.1-37.4-1.1-37.4 8" fill="#43a244"/>
+</svg>`;
+
+const YAHOO_MARK = `<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="115" fill="#6001D2"/>
+  <path d="M198 396h-58l23-55-65-154h59l35 89 35-89h58m54 71h-64l58-138h64" fill="#FFFFFF"/>
+  <circle cx="291" cy="306" r="35" fill="#FFFFFF"/>
+</svg>`;
+
+const ECOSIA_MARK = `<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <circle fill="#008060" cx="256" cy="256" r="256"/>
+  <path fill="#FFFFFF" d="M388 286c34-5 92 25 45 93-31 45-100 51-131 51H279c-1 31 28 125 31 135H214c0-8 1-94 11-135h-9c-49 0-127-7-148-74-31-99 43-135 74-106c-7-20-46-146 56-181 89-30 174 31 161 112c6-5 34-25 62-3 27 21 18 80-35 107Z"/>
+  <path fill="#008060" d="M324 144v71h-85v27h55v27h-55v27h85v71H187V144H324Z"/>
+</svg>`;
+
+const BRAVE_MARK = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <path fill="#FB542B" d="M15.68 0l2.096 2.38s1.84-.512 2.709.358c.868.87 1.584 1.638 1.584 1.638l-.562 1.381.715 2.047s-2.104 7.98-2.35 8.955c-.486 1.919-.818 2.66-2.198 3.633-1.38.972-3.884 2.66-4.293 2.916-.409.256-.92.692-1.38.692-.46 0-.97-.436-1.38-.692a185.796 185.796 0 01-4.293-2.916c-1.38-.973-1.712-1.714-2.197-3.633-.247-.975-2.351-8.955-2.351-8.955l.715-2.047-.562-1.381s.716-.768 1.585-1.638c.868-.87 2.708-.358 2.708-.358L8.321 0h7.36zm-3.679 14.936c-.14 0-1.038.317-1.758.69-.72.373-1.242.637-1.409.742-.167.104-.065.301.087.409.152.107 2.194 1.69 2.393 1.866.198.175.489.464.687.464.198 0 .49-.29.688-.464.198-.175 2.24-1.759 2.392-1.866.152-.108.254-.305.087-.41-.167-.104-.689-.368-1.41-.741-.72-.373-1.617-.69-1.757-.69zm0-11.278s-.409.001-1.022.206-1.278.46-1.584.46c-.307 0-2.581-.434-2.581-.434S4.119 7.152 4.119 7.849c0 .697.339.881.68 1.243l2.02 2.149c.192.203.59.511.356 1.066-.235.555-.58 1.26-.196 1.977.384.716 1.042 1.194 1.464 1.115.421-.08 1.412-.598 1.776-.834.364-.237 1.518-1.19 1.518-1.554 0-.365-1.193-1.02-1.413-1.168-.22-.15-1.226-.725-1.247-.95-.02-.227-.012-.293.284-.851.297-.559.831-1.304.742-1.8-.089-.495-.95-.753-1.565-.986-.615-.232-1.799-.671-1.947-.74-.148-.068-.11-.133.339-.175.448-.043 1.719-.212 2.292-.052.573.16 1.552.403 1.632.532.079.13.149.134.067.579-.081.445-.5 2.581-.541 2.96-.04.38-.12.63.288.724.409.094 1.097.256 1.333.256s.924-.162 1.333-.256c.408-.093.329-.344.288-.723-.04-.38-.46-2.516-.541-2.961-.082-.445-.012-.45.067-.579.08-.129 1.059-.372 1.632-.532.573-.16 1.845.009 2.292.052.449.042.487.107.339.175-.148.069-1.332.508-1.947.74-.615.233-1.476.49-1.565.986-.09.496.445 1.241.742 1.8.297.558.304.624.284.85-.02.226-1.026.802-1.247.95-.22.15-1.413.804-1.413 1.169 0 .364 1.154 1.317 1.518 1.554.364.236 1.355.755 1.776.834.422.079 1.08-.4 1.464-1.115.384-.716.039-1.422-.195-1.977-.235-.555.163-.863.355-1.066l2.02-2.149c.341-.362.68-.546.68-1.243 0-.697-2.695-3.96-2.695-3.96s-2.274.436-2.58.436c-.307 0-.972-.256-1.585-.461-.613-.205-1.022-.206-1.022-.206z"/>
+</svg>`;
+
 const GLASS_MARK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>`;
+
+const ENGINE_ICONS = {
+  google: GOOGLE_MARK,
+  bing: BING_MARK,
+  duckduckgo: DUCK_MARK,
+  yahoo: YAHOO_MARK,
+  ecosia: ECOSIA_MARK,
+  brave: BRAVE_MARK,
+};
 
 // Synchronously prime settings and shortcuts from localStorage cache to prevent flash
 try {
@@ -166,6 +333,16 @@ function loadState() {
     if (!settings.customGradient) {
       settings.customGradient = { c1: "#6effbb", c2: "#0a6f8a" };
     }
+    if (!Array.isArray(settings.recentClockColors)) {
+      settings.recentClockColors = [];
+    }
+    if (typeof settings.bgRotate === "string") {
+      settings.bgRotate = { unsplash: settings.bgRotate, photo: "never", gradient: "never", solid: "never" };
+      saveSettings();
+    } else if (!settings.bgRotate || typeof settings.bgRotate !== "object") {
+      settings.bgRotate = { unsplash: "tab", photo: "never", gradient: "never", solid: "never" };
+      saveSettings();
+    }
     if (!Array.isArray(settings.recentSolidColors) || !settings.recentSolidColors.length || settings.recentSolidColors.includes("#0b0d11")) {
       settings.recentSolidColors = ["#1b2a4a", "#144234", "#4a1e42", "#8c3b2b", "#2d3748"];
       saveSettings();
@@ -178,11 +355,13 @@ function loadState() {
       saveShortcuts();
     }
     if (Array.isArray(result.myQuotes)) MY_QUOTES = result.myQuotes;
+    if (!Array.isArray(settings.excludedQuotes)) settings.excludedQuotes = [];
+    if (!settings.dockLimit) settings.dockLimit = 5;
     if (!Array.isArray(settings.quoteCats) || !settings.quoteCats.length) {
-      settings.quoteCats = [...ALL_CATS];
+      settings.quoteCats = getAllAuthors().map((a) => a.name);
     } else {
-      settings.quoteCats = settings.quoteCats.filter((c) => ALL_CATS.includes(c));
-      if (!settings.quoteCats.length) settings.quoteCats = [...ALL_CATS];
+      settings.quoteCats = [...new Set(settings.quoteCats.map(normalizeAuthorName))];
+      if (!settings.quoteCats.length) settings.quoteCats = getAllAuthors().map((a) => a.name);
     }
 
     buildCategoryRows();
@@ -281,12 +460,15 @@ function updateThemePreview(activeUrl, activeTitle, activeKind) {
     }
   } else if (settings.bgType === "solid") {
     prevHero.style.backgroundImage = "none";
-    prevHero.style.backgroundColor = settings.solidColor;
-    if (nameEl) nameEl.textContent = settings.solidColor.toUpperCase();
-    if (kindEl) kindEl.textContent = "Solid Colour";
+    const effectiveSolid = getBgRotate("solid") !== "never"
+      ? SOLID_PRESET_COLORS[rotationIndex(SOLID_PRESET_COLORS.length, "solid")]
+      : settings.solidColor;
+    prevHero.style.backgroundColor = effectiveSolid;
+    if (nameEl) nameEl.textContent = effectiveSolid.toUpperCase();
+    if (kindEl) kindEl.textContent = getBgRotate("solid") !== "never" ? "Rotating Solid" : "Solid Colour";
   } else if (settings.bgType === "gradient") {
     prevHero.style.backgroundImage = "none";
-    if (settings.bg === "custom") {
+    if (settings.bg === "custom" && getBgRotate("gradient") === "never") {
       const g = settings.customGradient || { c1: "#6effbb", c2: "#0a6f8a" };
       prevHero.style.background = `linear-gradient(140deg, ${g.c1}, ${g.c2} 55%, #050810)`;
       if (nameEl) nameEl.textContent = "Custom Gradient";
@@ -301,12 +483,101 @@ function updateThemePreview(activeUrl, activeTitle, activeKind) {
         mono: "linear-gradient(140deg,#9aa4ad,#3d464e 55%,#12161a)",
         dark: "linear-gradient(140deg,#2c3550,#141a2b 55%,#05070d)",
       };
-      const theme = THEMES[settings.bg] ? settings.bg : "green";
-      prevHero.style.background = themeGradients[theme] || themeGradients.green;
-      if (nameEl) nameEl.textContent = THEMES[theme] || "Gradient";
-      if (kindEl) kindEl.textContent = "Dynamic Gradient";
+      const activeTheme = getBgRotate("gradient") !== "never"
+        ? GRADIENT_THEMES[rotationIndex(GRADIENT_THEMES.length, "gradient")]
+        : (THEMES[settings.bg] ? settings.bg : "green");
+      prevHero.style.background = themeGradients[activeTheme] || themeGradients.green;
+      if (nameEl) nameEl.textContent = THEMES[activeTheme] || "Gradient";
+      if (kindEl) kindEl.textContent = getBgRotate("gradient") !== "never" ? "Rotating Gradient" : "Dynamic Gradient";
     }
   }
+}
+
+function syncBgRotateUI() {
+  const sel = $("optBgRotate");
+  if (sel) sel.value = getBgRotate(settings.bgType);
+}
+
+function addRecentClockColor(color) {
+  if (!color) return;
+  const c = color.toLowerCase();
+  const recents = (settings.recentClockColors || []).filter((x) => x.toLowerCase() !== c);
+  recents.unshift(c);
+  settings.recentClockColors = recents.slice(0, 5);
+  saveSettings();
+  renderRecentClockColors();
+}
+
+function renderRecentClockColors() {
+  const container = $("clockRecents");
+  const row = $("clockRecentRow");
+  if (!container || !row) return;
+  const list = settings.recentClockColors || [];
+  if (!list.length) {
+    row.style.display = "none";
+    return;
+  }
+  row.style.display = "";
+  container.innerHTML = "";
+  list.forEach((col) => {
+    const btn = document.createElement("button");
+    btn.className = "dot";
+    btn.style.background = col;
+    btn.title = col;
+    if (settings.clockColor === "custom" && (settings.clockCustomColor || "").toLowerCase() === col.toLowerCase()) {
+      btn.classList.add("active");
+    }
+    btn.onclick = () => {
+      settings.clockColor = "custom";
+      settings.clockCustomColor = col;
+      if ($("clockCustomColor")) $("clockCustomColor").value = col;
+      applySettings();
+      saveSettings();
+    };
+    container.appendChild(btn);
+  });
+}
+
+function addRecentSolidColor(color) {
+  if (!color) return;
+  const c = color.toLowerCase();
+  const recents = (settings.recentSolidColors || []).filter((x) => x.toLowerCase() !== c);
+  recents.unshift(c);
+  settings.recentSolidColors = recents.slice(0, 7);
+  saveSettings();
+  renderRecentSolidColors();
+}
+
+function renderRecentSolidColors() {
+  const container = $("solidRecents");
+  const row = $("solidRecentRow");
+  if (!container || !row) return;
+  const list = settings.recentSolidColors || [];
+  if (!list.length) {
+    row.style.display = "none";
+    return;
+  }
+  row.style.display = "";
+  container.innerHTML = "";
+  list.forEach((col) => {
+    const btn = document.createElement("button");
+    btn.className = "dot";
+    btn.style.background = col;
+    btn.title = col;
+    if (settings.bgType === "solid" && settings.solidColor.toLowerCase() === col.toLowerCase()) {
+      btn.classList.add("active");
+    }
+    btn.onclick = () => {
+      settings.solidColor = col;
+      settings.bgType = "solid";
+      addRecentSolidColor(col);
+      syncBgRotateUI();
+      applySettings();
+      saveSettings();
+      applyWallpaper();
+    };
+    container.appendChild(btn);
+  });
 }
 
 // ============================================================
@@ -315,7 +586,14 @@ function updateThemePreview(activeUrl, activeTitle, activeKind) {
 function applySettings() {
   cleanEarlyBgStyle();
   const body = document.body;
-  const theme = THEMES[settings.bg] ? settings.bg : "green";
+
+  let activeTheme = settings.bg;
+  let _randomGradient = null; // filled below when rotation is on
+  if (settings.bgType === "gradient" && getBgRotate("gradient") !== "never") {
+    _randomGradient = randomGradientPair();
+    activeTheme = settings.bg; // keep theme for dataset (won't be used for colors)
+  }
+  const theme = THEMES[activeTheme] ? activeTheme : "green";
 
   body.dataset.theme      = theme;
   body.dataset.mode       = resolvedMode();
@@ -336,14 +614,28 @@ function applySettings() {
   applyAutoClockContrast();
 
   // background
+  let activeSolid = settings.solidColor;
+  if (settings.bgType === "solid" && getBgRotate("solid") !== "never") {
+    activeSolid = randomDarkSolidColor();
+  }
+
   if (settings.bgType === "solid") {
-    body.style.setProperty("--base", settings.solidColor);
+    body.style.setProperty("--base", activeSolid);
     body.style.removeProperty("--c1");
     body.style.removeProperty("--c2");
     body.style.removeProperty("--c3");
     body.style.removeProperty("--c4");
     body.style.removeProperty("--accent");
-  } else if (settings.bgType === "gradient" && settings.bg === "custom") {
+  } else if (settings.bgType === "gradient" && _randomGradient) {
+    // True random gradient — inject colours directly, bypass theme system
+    const { c1, c2 } = _randomGradient;
+    body.style.setProperty("--c1", c1);
+    body.style.setProperty("--c2", c2);
+    body.style.setProperty("--c3", c1);
+    body.style.setProperty("--c4", c2);
+    body.style.setProperty("--base", "#050810");
+    body.style.setProperty("--accent", c1);
+  } else if (settings.bgType === "gradient" && settings.bg === "custom" && getBgRotate("gradient") === "never") {
     const g = settings.customGradient || { c1: "#6effbb", c2: "#0a6f8a" };
     body.style.setProperty("--c1", g.c1);
     body.style.setProperty("--c2", g.c2);
@@ -371,22 +663,32 @@ function applySettings() {
     if (el) el.style.display = on ? "" : "none";
   });
 
-  $("engineIcon").innerHTML = settings.engine === "google" ? GOOGLE_MARK : GLASS_MARK;
-  $("searchInput").placeholder = `Search ${ENGINES[settings.engine].name}`;
+  const eng = ENGINES[settings.engine] || ENGINES.google;
+  $("engineIcon").innerHTML = ENGINE_ICONS[settings.engine] || GLASS_MARK;
+  $("searchInput").placeholder = `Search ${eng.name}`;
 
   updateThemePreview();
-  $("optSolidHex").textContent = settings.solidColor.toUpperCase();
+  if ($("optSolidHex")) $("optSolidHex").textContent = settings.solidColor.toUpperCase();
   if ($("optSolid")) $("optSolid").value = settings.solidColor;
 
   $$("#bgSwatches .dot").forEach((d) => d.classList.toggle("active", settings.bgType === "gradient" && d.dataset.bg === theme));
-  $$("#solidPresets .dot").forEach((d) => d.classList.toggle("active", settings.bgType === "solid" && (d.dataset.solid || "").toLowerCase() === settings.solidColor.toLowerCase()));
+  $$("#solidPresets .dot").forEach((d) => {
+    if (d.dataset.solid) {
+      d.classList.toggle("active", settings.bgType === "solid" && (d.dataset.solid || "").toLowerCase() === (getBgRotate("solid") !== "never" ? activeSolid : settings.solidColor).toLowerCase());
+    } else if (d.classList.contains("cc-custom")) {
+      const isCustom = settings.bgType === "solid" && !SOLID_PRESET_COLORS.includes(settings.solidColor.toLowerCase());
+      d.classList.toggle("active", isCustom);
+    }
+  });
   $$("#clockColors .dot").forEach((d) => d.classList.toggle("active", d.dataset.cc === settings.clockColor));
   $$("#scaleTiles .sw-tile").forEach((t) => t.classList.toggle("active", t.dataset.scale === settings.scale));
   $$("#modeTiles .sw-tile").forEach((t) => t.classList.toggle("active", t.dataset.mode === settings.mode));
   $$("#bgSegment button").forEach((b) => b.classList.toggle("active", b.dataset.bgtype === settings.bgType));
   $$(".bg-tab").forEach((t) => t.classList.toggle("active", t.dataset.bgtype === settings.bgType));
 
-  renderRecentSolidColors();
+  if (typeof renderRecentSolidColors === "function") renderRecentSolidColors();
+  if (typeof renderRecentClockColors === "function") renderRecentClockColors();
+  if (typeof syncBgRotateUI === "function") syncBgRotateUI();
   updateProfile();
   updateQuoteStats();
   updateClock();
@@ -398,6 +700,9 @@ function syncControls() {
   set("clockCustomColor", "value", settings.clockCustomColor);
   set("optName", "value", settings.userName);
   set("optGreetStyle", "value", settings.greetStyle);
+  set("optCustomGreet", "value", settings.customGreet || "");
+  const customGreetRow = $("customGreetRow");
+  if (customGreetRow) customGreetRow.style.display = settings.greetStyle === "custom" ? "" : "none";
   set("optIsland", "checked", settings.showIsland);
   set("optIslandCycle", "checked", settings.islandCycle);
   set("optClock", "checked", settings.showClock);
@@ -410,8 +715,11 @@ function syncControls() {
   set("optQuote", "checked", settings.showQuote);
   set("optQuote2", "checked", settings.showQuote);
   set("optQuoteRotate", "value", settings.quoteRotate);
-  set("optBgRotate", "value", settings.bgRotate || "tab");
-  $$("#quoteCats input").forEach((cb) => { cb.checked = settings.quoteCats.includes(cb.dataset.cat); });
+  syncBgRotateUI();
+  const enabledAuthorsSet = new Set((settings.quoteCats || []).map(normalizeAuthorName));
+  $$("#quoteCats input").forEach((cb) => {
+    cb.checked = enabledAuthorsSet.has(normalizeAuthorName(cb.dataset.author || cb.dataset.cat));
+  });
   set("optWeather", "checked", settings.showWeather);
   set("optUnit", "value", settings.unit);
   syncManualLocationUI();
@@ -423,6 +731,15 @@ function syncControls() {
   set("optGrain", "checked", settings.grain);
   set("optSnap", "checked", settings.snap);
   set("optSolid", "value", settings.solidColor);
+  set("optDockSource", "value", settings.dockSource || "custom");
+  set("optDockLimit", "value", String(settings.dockLimit || 5));
+  set("optShowAi", "checked", settings.showAi !== false);
+  set("optAiProvider", "value", settings.aiProvider || "gemini");
+  set("optAiCustomUrl", "value", settings.aiCustomUrl || "");
+  const aiCustomRow = $("aiCustomUrlRow");
+  if (aiCustomRow) aiCustomRow.style.display = settings.aiProvider === "custom" ? "" : "none";
+  const aiProviderRow = $("aiProviderRow");
+  if (aiProviderRow) aiProviderRow.style.display = settings.showAi !== false ? "" : "none";
   set("optUnsplashCat", "value", settings.unsplashCat || "all");
   if (settings.customGradient) {
     set("optGradColor1", "value", settings.customGradient.c1);
@@ -447,6 +764,7 @@ function greetingFor(hour) {
     case "hello":   return "Hello";
     case "welcome": return "Welcome Back";
     case "hey":     return "Hey";
+    case "custom":  return (settings.customGreet && settings.customGreet.trim()) ? settings.customGreet.trim() : "Hello";
     default:
       if (hour < 5)  return "Good Night";
       if (hour < 12) return "Good Morning";
@@ -626,11 +944,11 @@ function loadWeather(lat, lon) {
       weatherState.cond = label;
       weatherState.icon = icon;
       // A manual pick names the exact place; otherwise fall back to the IANA
-      // zone Open-Meteo resolves (e.g. "Africa/Lagos") so we avoid a second
-      // geocoder call just to label the widget.
+      // zone Open-Meteo resolves until reverse-geocoding finishes.
+      const fallbackCity = (data.timezone || "").split("/").pop().replace(/_/g, " ");
       weatherState.city = settings.manualLocation
         ? settings.manualLocation.name
-        : (data.timezone || "").split("/").pop().replace(/_/g, " ");
+        : fallbackCity;
 
       $("weatherTemp").innerHTML = `${weatherState.temp}<span class="deg">&deg;</span>`;
       $("weatherIcon").innerHTML = icon;
@@ -641,6 +959,21 @@ function loadWeather(lat, lon) {
           `H:${Math.round(data.daily.temperature_2m_max[0])}°  L:${Math.round(data.daily.temperature_2m_min[0])}°`;
       }
       renderIsland();
+
+      // If using automatic location, get precise locality / city name via reverse-geocoding
+      if (!settings.manualLocation) {
+        fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`)
+          .then((r) => r.json())
+          .then((geo) => {
+            const precise = geo.locality || geo.city || geo.principalSubdivision || "";
+            if (precise && !settings.manualLocation) {
+              weatherState.city = precise;
+              $("weatherCity").textContent = precise;
+              renderIsland();
+            }
+          })
+          .catch(() => {});
+      }
     })
     .catch(() => { $("weatherCard").dataset.clickable = ""; failWeather("Unavailable", "Check connection"); });
 }
@@ -711,7 +1044,7 @@ function initWeather() {
     return;
   }
 
-  const timer = setTimeout(tryIpFallback, 2500);
+  const timer = setTimeout(tryIpFallback, 5000);
 
   navigator.geolocation.getCurrentPosition(
     (pos) => {
@@ -725,7 +1058,7 @@ function initWeather() {
       clearTimeout(timer);
       tryIpFallback();
     },
-    { timeout: 3000 }
+    { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 }
   );
 }
 
@@ -1058,53 +1391,408 @@ window.addEventListener("resize", () => {
 // ============================================================
 // Dock
 // ============================================================
-const BUILTIN_LOCAL_ICONS = {
-  "google.com": "icons/google.png",
-  "youtube.com": "icons/youtube.png",
-  "mail.google.com": "icons/gmail.png",
-  "drive.google.com": "icons/drive.png",
-};
-
-function getBuiltinIcon(url) {
+// ============================================================
+// Dock
+// ============================================================
+function extractCleanDomain(url) {
+  if (!url) return "";
+  let u = url.trim();
+  if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
   try {
-    const u = url.toLowerCase();
-    const host = new URL(url).hostname.replace(/^www\./, "").toLowerCase();
-    if (host === "drive.google.com" || u.includes("drive.google.com")) return BUILTIN_LOCAL_ICONS["drive.google.com"];
-    if (host === "mail.google.com" || u.includes("mail.google.com") || u.includes("gmail.com")) return BUILTIN_LOCAL_ICONS["mail.google.com"];
-    if (host === "youtube.com" || u.includes("youtube.com") || u.includes("youtu.be")) return BUILTIN_LOCAL_ICONS["youtube.com"];
-    if (host === "google.com" || host.endsWith(".google.com")) return BUILTIN_LOCAL_ICONS["google.com"];
-  } catch {}
-  return null;
+    return new URL(u).hostname.replace(/^www\./i, "").toLowerCase();
+  } catch {
+    return u.split("/")[0].replace(/^www\./i, "").toLowerCase();
+  }
 }
 
 const FALLBACK_COLORS = ["#4285F4","#EA4335","#FBBC05","#34A853","#8E44AD","#16A085","#E67E22"];
-const faviconFor = (url, size = 128) =>
-  `https://www.google.com/s2/favicons?sz=${size}&domain_url=${encodeURIComponent(url)}`;
+
+function getSpecializedIconCandidates(url, name) {
+  const u = (url || "").toLowerCase();
+  const n = (name || "").toLowerCase();
+  const list = [];
+
+  // Google Drive
+  if (u.includes("drive.google") || (u.includes("google.com") && n.includes("drive"))) {
+    list.push("https://ssl.gstatic.com/images/branding/product/2x/drive_2020q4_48dp.png");
+    list.push("https://ssl.gstatic.com/docs/doclist/images/drive_2020q4_32dp.png");
+    return list;
+  }
+
+  // Gmail
+  if (u.includes("mail.google") || u.includes("gmail.com") || (u.includes("google.com") && (n.includes("gmail") || n.includes("mail")))) {
+    list.push("https://ssl.gstatic.com/images/branding/product/2x/gmail_2020q4_48dp.png");
+    list.push("https://ssl.gstatic.com/ui/v1/icons/mail/rfr/gmail.ico");
+    return list;
+  }
+
+  // Google Gemini
+  if (u.includes("gemini.google") || (u.includes("google.com") && n.includes("gemini"))) {
+    list.push("https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d4735304ff6292a690345.svg");
+    list.push("https://gstatic.com/lamda/images/favicon_v2_16x16.png");
+    return list;
+  }
+
+  // Google Calendar
+  if (u.includes("calendar.google") || (u.includes("google.com") && n.includes("calendar"))) {
+    list.push("https://ssl.gstatic.com/images/branding/product/2x/calendar_2020q4_48dp.png");
+    list.push("https://ssl.gstatic.com/calendar/images/dynamiclogo_2020q4/calendar_31_2x.png");
+    return list;
+  }
+
+  // Google Sheets
+  if (u.includes("sheets.google") || u.includes("docs.google.com/spreadsheets") || (u.includes("google.com") && n.includes("sheet"))) {
+    list.push("https://ssl.gstatic.com/images/branding/product/2x/sheets_2020q4_48dp.png");
+    list.push("https://ssl.gstatic.com/docs/spreadsheets/images/favicon6.ico");
+    return list;
+  }
+
+  // Google Slides
+  if (u.includes("slides.google") || u.includes("docs.google.com/presentation") || (u.includes("google.com") && n.includes("slide"))) {
+    list.push("https://ssl.gstatic.com/images/branding/product/2x/slides_2020q4_48dp.png");
+    list.push("https://ssl.gstatic.com/docs/presentations/images/favicon5.ico");
+    return list;
+  }
+
+  // Google Forms
+  if (u.includes("forms.google") || u.includes("docs.google.com/forms") || (u.includes("google.com") && n.includes("form"))) {
+    list.push("https://ssl.gstatic.com/images/branding/product/2x/forms_2020q4_48dp.png");
+    return list;
+  }
+
+  // Google Docs
+  if (u.includes("docs.google") || (u.includes("google.com") && n.includes("doc"))) {
+    list.push("https://ssl.gstatic.com/images/branding/product/2x/docs_2020q4_48dp.png");
+    list.push("https://ssl.gstatic.com/docs/documents/images/kix-favicon7.ico");
+    return list;
+  }
+
+  // Google Meet
+  if (u.includes("meet.google") || (u.includes("google.com") && n.includes("meet"))) {
+    list.push("https://ssl.gstatic.com/images/branding/product/2x/meet_2020q4_48dp.png");
+    return list;
+  }
+
+  // Google Keep
+  if (u.includes("keep.google") || (u.includes("google.com") && n.includes("keep"))) {
+    list.push("https://ssl.gstatic.com/images/branding/product/2x/keep_2020q4_48dp.png");
+    list.push("https://ssl.gstatic.com/keep/keep_2020q4.ico");
+    return list;
+  }
+
+  // Google Maps
+  if (u.includes("maps.google") || (u.includes("google.com") && n.includes("map"))) {
+    list.push("https://ssl.gstatic.com/images/branding/product/2x/maps_48dp.png");
+    list.push("https://maps.gstatic.com/favicon3.ico");
+    return list;
+  }
+
+  // Google Photos
+  if (u.includes("photos.google") || (u.includes("google.com") && n.includes("photo"))) {
+    list.push("https://ssl.gstatic.com/images/branding/product/2x/photos_48dp.png");
+    list.push("https://ssl.gstatic.com/social/photosui/images/favicon/v2/favicon-128.png");
+    return list;
+  }
+
+  // Google Translate
+  if (u.includes("translate.google") || (u.includes("google.com") && n.includes("translate"))) {
+    list.push("https://ssl.gstatic.com/images/branding/product/2x/translate_48dp.png");
+    return list;
+  }
+
+  // Google Classroom
+  if (u.includes("classroom.google") || (u.includes("google.com") && n.includes("classroom"))) {
+    list.push("https://ssl.gstatic.com/images/branding/product/2x/classroom_48dp.png");
+    return list;
+  }
+
+  // YouTube
+  if (u.includes("youtube.com") || u.includes("youtu.be")) {
+    list.push("https://www.youtube.com/favicon.ico");
+    return list;
+  }
+
+  // Microsoft Outlook
+  if (u.includes("outlook.live.com") || u.includes("outlook.office.com") || (u.includes("outlook.com") && !u.includes("onedrive"))) {
+    list.push("https://res.cdn.office.net/assets/mail/pwa/v1/pngs/apple-touch-icon.png");
+    list.push("https://outlook.live.com/favicon.ico");
+    return list;
+  }
+
+  // Microsoft OneDrive
+  if (u.includes("onedrive.live.com") || (u.includes("microsoft.com") && n.includes("onedrive"))) {
+    list.push("https://onedrive.live.com/favicon.ico");
+    return list;
+  }
+
+  // Microsoft Copilot
+  if (u.includes("copilot.microsoft.com") || (u.includes("microsoft.com") && n.includes("copilot"))) {
+    list.push("https://copilot.microsoft.com/sa/simg/favicon-trans-bg.ico");
+    list.push("https://copilot.microsoft.com/favicon.ico");
+    return list;
+  }
+
+  // Main Google Search
+  if (u.includes("google.com") && (u.endsWith("google.com") || u.endsWith("google.com/") || u.includes("google.com/search") || u.includes("google.com/webhp") || n === "google")) {
+    list.push("https://www.google.com/favicon.ico");
+    return list;
+  }
+
+  return list;
+}
+
+function createShortcutIconElement(s, index, isSettings = false) {
+  const url = s.url || "";
+  const domain = extractCleanDomain(url);
+  const name = s.name || domain || "Site";
+
+  // Fallback monogram element
+  const fallback = document.createElement("span");
+  fallback.className = isSettings ? "sc-fallback" : "fallback";
+  fallback.textContent = (name.trim()[0] || "?").toUpperCase();
+  fallback.style.background = FALLBACK_COLORS[index % FALLBACK_COLORS.length];
+
+  if (!domain) return fallback;
+
+  // Candidates priority list: specialized product icons first, then dynamic cascade
+  const specialized = getSpecializedIconCandidates(url, name);
+  const candidates = [...specialized];
+
+  // Browser native favicon (if running in extension context)
+  if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.id) {
+    try {
+      candidates.push(`chrome-extension://${chrome.runtime.id}/_favicon/?pageUrl=${encodeURIComponent(url)}&size=64`);
+    } catch {}
+  }
+
+  // High-res Unavatar service
+  candidates.push(`https://unavatar.io/${domain}?fallback=false`);
+
+  // Google S2 high-res favicon service
+  candidates.push(`https://www.google.com/s2/favicons?sz=128&domain_url=${encodeURIComponent(url)}`);
+
+  // DuckDuckGo icon service
+  candidates.push(`https://icons.duckduckgo.com/ip3/${domain}.ico`);
+
+  // Direct domain favicon
+  candidates.push(`https://${domain}/favicon.ico`);
+
+  let step = 0;
+  const img = document.createElement("img");
+  img.alt = name;
+  img.src = candidates[0];
+
+  img.onerror = () => {
+    step++;
+    if (step < candidates.length) {
+      img.src = candidates[step];
+    } else {
+      img.replaceWith(fallback);
+    }
+  };
+
+  return img;
+}
+
+
+const AI_SERVICES = {
+  gemini: {
+    name: "Gemini",
+    url: "https://gemini.google.com",
+  },
+  chatgpt: {
+    name: "ChatGPT",
+    url: "https://chatgpt.com",
+  },
+  claude: {
+    name: "Claude",
+    url: "https://claude.ai",
+  },
+  copilot: {
+    name: "Microsoft Copilot",
+    url: "https://copilot.microsoft.com",
+  },
+  perplexity: {
+    name: "Perplexity",
+    url: "https://perplexity.ai",
+  },
+  deepseek: {
+    name: "DeepSeek",
+    url: "https://deepseek.com",
+  },
+};
+
+function getActiveAiUrl() {
+  if (settings.showAi === false) return null;
+  const provider = settings.aiProvider || "gemini";
+  if (provider === "custom") {
+    let custom = (settings.aiCustomUrl || "").trim();
+    if (custom) {
+      if (!/^https?:\/\//i.test(custom)) custom = "https://" + custom;
+      return custom;
+    }
+    return "https://gemini.google.com";
+  }
+  return AI_SERVICES[provider] ? AI_SERVICES[provider].url : "https://gemini.google.com";
+}
+
+function isSameAiService(itemUrl, aiUrl) {
+  if (!itemUrl || !aiUrl) return false;
+  const d1 = extractCleanDomain(itemUrl);
+  const d2 = extractCleanDomain(aiUrl);
+  if (!d1 || !d2) return false;
+  if (d1 === d2) return true;
+  if ((d1 === "chatgpt.com" || d1 === "openai.com" || d1.endsWith(".openai.com")) &&
+      (d2 === "chatgpt.com" || d2 === "openai.com" || d2.endsWith(".openai.com"))) {
+    return true;
+  }
+  if ((d1 === "claude.ai" || d1 === "anthropic.com") && (d2 === "claude.ai" || d2 === "anthropic.com")) {
+    return true;
+  }
+  if (d1.includes("gemini") && d2.includes("gemini")) {
+    return true;
+  }
+  if (d1.includes("copilot") && d2.includes("copilot")) {
+    return true;
+  }
+  if (d1.includes("perplexity") && d2.includes("perplexity")) {
+    return true;
+  }
+  if (d1.includes("deepseek") && d2.includes("deepseek")) {
+    return true;
+  }
+  return false;
+}
+
+function getActiveShortcuts(cb) {
+  const source = settings.dockSource || "custom";
+  const limit = Math.max(1, Math.min(20, parseInt(settings.dockLimit, 10) || 5));
+
+  if (source === "topsites") {
+    if (typeof chrome !== "undefined" && chrome.topSites && chrome.topSites.get) {
+      chrome.topSites.get((sites) => {
+        if (sites && sites.length) {
+          const activeAi = getActiveAiUrl();
+          let filtered = sites;
+          if (activeAi) {
+            filtered = sites.filter((s) => !isSameAiService(s.url, activeAi));
+          }
+          const mapped = filtered.slice(0, limit).map((s) => ({
+            name: s.title || (s.url ? s.url.replace(/^https?:\/\/(www\.)?/, "").split("/")[0] : "Site"),
+            url: s.url,
+          }));
+          return cb(mapped);
+        }
+        cb(SHORTCUTS.slice(0, limit));
+      });
+      return;
+    }
+  } else if (source === "bookmarks") {
+    if (typeof chrome !== "undefined" && chrome.bookmarks) {
+      const activeAi = getActiveAiUrl();
+      const extractBookmarks = (nodes, result = []) => {
+        for (const node of nodes) {
+          if (node.url && !node.url.startsWith("javascript:")) {
+            if (!activeAi || !isSameAiService(node.url, activeAi)) {
+              result.push({ name: node.title || node.url, url: node.url });
+            }
+          }
+          if (node.children) extractBookmarks(node.children, result);
+        }
+        return result;
+      };
+
+      chrome.bookmarks.getChildren("1", (children) => {
+        if (chrome.runtime?.lastError || !children || !children.length) {
+          chrome.bookmarks.getTree((tree) => {
+            const all = extractBookmarks(tree || []);
+            cb(all.length ? all.slice(0, limit) : SHORTCUTS.slice(0, limit));
+          });
+        } else {
+          const bar = children
+            .filter((c) => c.url && !c.url.startsWith("javascript:") && (!activeAi || !isSameAiService(c.url, activeAi)))
+            .map((c) => ({
+              name: c.title || c.url,
+              url: c.url,
+            }));
+          if (bar.length) {
+            cb(bar.slice(0, limit));
+          } else {
+            chrome.bookmarks.getTree((tree) => {
+              const all = extractBookmarks(tree || []);
+              cb(all.length ? all.slice(0, limit) : SHORTCUTS.slice(0, limit));
+            });
+          }
+        }
+      });
+      return;
+    }
+  }
+
+  cb(SHORTCUTS.slice(0, limit));
+}
+
+function renderAiButton() {
+  const btn = $("aiBtn") || $("geminiBtn");
+  if (!btn) return;
+
+  if (settings.showAi === false) {
+    btn.style.display = "none";
+    return;
+  }
+  btn.style.display = "";
+
+  const provider = settings.aiProvider || "gemini";
+  let targetUrl = "https://gemini.google.com";
+  let targetName = "Gemini";
+
+  if (provider === "custom") {
+    let custom = (settings.aiCustomUrl || "").trim();
+    if (custom) {
+      if (!/^https?:\/\//i.test(custom)) custom = "https://" + custom;
+      targetUrl = custom;
+      const cleanHost = extractCleanDomain(custom);
+      targetName = cleanHost ? cleanHost.replace(/\.(com|ai|io|org|net|co)$/i, "") : "AI Assistant";
+      targetName = targetName.charAt(0).toUpperCase() + targetName.slice(1);
+    } else {
+      targetUrl = "https://gemini.google.com";
+      targetName = "AI Assistant";
+    }
+  } else if (AI_SERVICES[provider]) {
+    targetUrl = AI_SERVICES[provider].url;
+    targetName = AI_SERVICES[provider].name;
+  }
+
+  btn.href = targetUrl;
+  btn.dataset.label = targetName;
+  btn.setAttribute("title", targetName);
+  btn.setAttribute("aria-label", targetName);
+
+  btn.innerHTML = "";
+  const iconEl = createShortcutIconElement({ url: targetUrl, name: targetName }, 0, false);
+  btn.appendChild(iconEl);
+}
 
 function renderShortcuts() {
   const dock = $("dock");
-  dock.querySelectorAll("a:not(#settingsBtn):not(#geminiBtn)").forEach((el) => el.remove());
-  const divider = dock.querySelector(".dock-divider");
+  if (!dock) return;
 
-  SHORTCUTS.forEach((s, i) => {
-    const a = document.createElement("a");
-    a.href = s.url;
-    a.dataset.label = s.name || s.url;
+  renderAiButton();
 
-    const localIcon = getBuiltinIcon(s.url);
-    const img = document.createElement("img");
-    img.src = localIcon || faviconFor(s.url);
-    img.alt = s.name || "";
-    img.onerror = () => {
-      const fb = document.createElement("span");
-      fb.className = "fallback";
-      fb.textContent = ((s.name || "?").trim()[0] || "?").toUpperCase();
-      fb.style.background = FALLBACK_COLORS[i % FALLBACK_COLORS.length];
-      img.replaceWith(fb);
-    };
-    a.appendChild(img);
+  getActiveShortcuts((items) => {
+    dock.querySelectorAll("a:not(#settingsBtn):not(#aiBtn):not(#geminiBtn)").forEach((el) => el.remove());
+    const divider = dock.querySelector(".dock-divider");
 
-    dock.insertBefore(a, divider);
+    items.forEach((s, i) => {
+      const a = document.createElement("a");
+      a.href = s.url;
+      a.dataset.label = s.name || s.url;
+
+      const icon = createShortcutIconElement(s, i, false);
+      a.appendChild(icon);
+
+      dock.insertBefore(a, divider);
+    });
   });
 }
 
@@ -1114,77 +1802,158 @@ const X_SVG    = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 
 function renderShortcutList() {
   const list = $("shortcutList");
+  if (!list) return;
   list.innerHTML = "";
 
-  if (!SHORTCUTS.length) {
-    list.innerHTML = `<div class="sw-empty">No shortcuts yet. Add one below.</div>`;
-    return;
-  }
+  const source = settings.dockSource || "custom";
+  const limit = Math.max(1, Math.min(20, parseInt(settings.dockLimit, 10) || 5));
+  const label = $("shortcutListLabel");
+  const addBtn = $("addShortcutBtn");
 
-  SHORTCUTS.forEach((s, i) => {
-    const row = document.createElement("div");
-    row.className = "sc-row";
+  if (source === "custom") {
+    if (label) {
+      label.textContent = SHORTCUTS.length > limit
+        ? `Shortcuts (First ${limit} shown in dock)`
+        : `Shortcuts (${SHORTCUTS.length})`;
+    }
+    if (addBtn) addBtn.style.display = "";
 
-    const img = document.createElement("img");
-    const localIcon = getBuiltinIcon(s.url);
-    img.src = localIcon || faviconFor(s.url, 32);
-    img.alt = "";
-    img.onerror = () => {
-      const fb = document.createElement("span");
-      fb.className = "sc-fallback";
-      fb.textContent = ((s.name || "?").trim()[0] || "?").toUpperCase();
-      fb.style.background = FALLBACK_COLORS[i % FALLBACK_COLORS.length];
-      img.replaceWith(fb);
-    };
+    if (!SHORTCUTS.length) {
+      list.innerHTML = `<div class="sw-empty">No shortcuts yet. Add one below.</div>`;
+      return;
+    }
 
-    const mkField = (icon, value, placeholder, onInput, onBlur) => {
-      const wrap = document.createElement("label");
-      wrap.className = "sc-field";
-      wrap.innerHTML = icon;
-      const input = document.createElement("input");
-      input.type = "text";
-      input.value = value;
-      input.placeholder = placeholder;
-      input.addEventListener("input", () => onInput(input));
-      if (onBlur) input.addEventListener("blur", () => onBlur(input));
-      wrap.appendChild(input);
-      return wrap;
-    };
+    SHORTCUTS.forEach((s, i) => {
+      const row = document.createElement("div");
+      row.className = "sc-row" + (i >= limit ? " sc-row-overflow" : "");
 
-    const nameField = mkField(TAG_SVG, s.name, "Name", (input) => {
-      SHORTCUTS[i].name = input.value;
-      saveShortcuts();
-      renderShortcuts();
-    });
+      let iconEl = createShortcutIconElement(s, i, true);
 
-    const urlField = mkField(LINK_SVG, s.url, "https://…", (input) => {
-      SHORTCUTS[i].url = input.value;
-      saveShortcuts();
-      renderShortcuts();
-    }, (input) => {
-      const v = input.value.trim();
-      if (v && !/^https?:\/\//i.test(v)) {
-        SHORTCUTS[i].url = input.value = `https://${v}`;
+      const refreshRowIcon = () => {
+        const newIcon = createShortcutIconElement(SHORTCUTS[i], i, true);
+        if (iconEl && iconEl.parentNode) {
+          iconEl.replaceWith(newIcon);
+          iconEl = newIcon;
+        }
+      };
+
+      const mkField = (icon, value, placeholder, onInput, onBlur) => {
+        const wrap = document.createElement("label");
+        wrap.className = "sc-field";
+        wrap.innerHTML = icon;
+        const input = document.createElement("input");
+        input.type = "text";
+        input.value = value;
+        input.placeholder = placeholder;
+        input.addEventListener("input", () => onInput(input));
+        if (onBlur) input.addEventListener("blur", () => onBlur(input));
+        wrap.appendChild(input);
+        return wrap;
+      };
+
+      let typingTimer = null;
+
+      const nameField = mkField(TAG_SVG, s.name, "Name", (input) => {
+        SHORTCUTS[i].name = input.value;
+        saveShortcuts();
+        renderShortcuts();
+        if (iconEl && (iconEl.classList.contains("sc-fallback") || !s.url)) {
+          refreshRowIcon();
+        }
+      });
+
+      const urlField = mkField(LINK_SVG, s.url, "https://…", (input) => {
+        SHORTCUTS[i].url = input.value;
+        saveShortcuts();
+        renderShortcuts();
+        clearTimeout(typingTimer);
+        typingTimer = setTimeout(() => {
+          refreshRowIcon();
+        }, 250);
+      }, (input) => {
+        const v = input.value.trim();
+        if (v && !/^https?:\/\//i.test(v)) {
+          SHORTCUTS[i].url = input.value = `https://${v}`;
+          saveShortcuts();
+          renderShortcuts();
+          refreshRowIcon();
+        }
+      });
+
+      const del = document.createElement("button");
+      del.className = "sc-del";
+      del.innerHTML = X_SVG;
+      del.title = `Remove ${s.name}`;
+      del.onclick = () => {
+        SHORTCUTS.splice(i, 1);
         saveShortcuts();
         renderShortcuts();
         renderShortcutList();
+      };
+
+      if (i >= limit) {
+        const overflowBadge = document.createElement("span");
+        overflowBadge.className = "sc-overflow-badge";
+        overflowBadge.textContent = "Exceeds dock limit";
+        overflowBadge.title = `Your dock is limited to ${limit} items. Increase the limit in settings to show this shortcut.`;
+        row.append(iconEl, nameField, urlField, overflowBadge, del);
+      } else {
+        row.append(iconEl, nameField, urlField, del);
       }
+      list.appendChild(row);
     });
+  } else {
+    // Automatic mode: topsites or bookmarks
+    if (addBtn) addBtn.style.display = "none";
 
-    const del = document.createElement("button");
-    del.className = "sc-del";
-    del.innerHTML = X_SVG;
-    del.title = `Remove ${s.name}`;
-    del.onclick = () => {
-      SHORTCUTS.splice(i, 1);
-      saveShortcuts();
-      renderShortcuts();
-      renderShortcutList();
-    };
+    if (source === "topsites") {
+      if (label) label.textContent = `Most Visited (Top ${limit} shown)`;
+    } else {
+      if (label) label.textContent = `Favorites / Bookmarks (Top ${limit} shown)`;
+    }
 
-    row.append(img, nameField, urlField, del);
-    list.appendChild(row);
-  });
+    getActiveShortcuts((items) => {
+      list.innerHTML = "";
+      if (!items.length) {
+        list.innerHTML = `<div class="sw-empty quiet">No items found for this source.</div>`;
+        return;
+      }
+      items.forEach((s, i) => {
+        const row = document.createElement("div");
+        row.className = "sc-row";
+
+        const iconEl = createShortcutIconElement(s, i, true);
+
+        const info = document.createElement("div");
+        info.style.flex = "1";
+        info.style.minWidth = "0";
+        info.style.display = "flex";
+        info.style.flexDirection = "column";
+        info.style.gap = "2px";
+
+        const nameSpan = document.createElement("span");
+        nameSpan.style.fontSize = "13px";
+        nameSpan.style.fontWeight = "550";
+        nameSpan.style.color = "var(--sw-text)";
+        nameSpan.style.overflow = "hidden";
+        nameSpan.style.textOverflow = "ellipsis";
+        nameSpan.style.whiteSpace = "nowrap";
+        nameSpan.textContent = s.name || s.url;
+
+        const urlSpan = document.createElement("span");
+        urlSpan.style.fontSize = "11px";
+        urlSpan.style.color = "var(--sw-label)";
+        urlSpan.style.overflow = "hidden";
+        urlSpan.style.textOverflow = "ellipsis";
+        urlSpan.style.whiteSpace = "nowrap";
+        urlSpan.textContent = s.url;
+
+        info.append(nameSpan, urlSpan);
+        row.append(iconEl, info);
+        list.appendChild(row);
+      });
+    });
+  }
 }
 
 $("addShortcutBtn").addEventListener("click", () => {
@@ -1246,62 +2015,25 @@ function selectTab(tab) {
 }
 $$("#wdSegment button").forEach((btn) => btn.addEventListener("click", () => selectTab(btn.dataset.tab)));
 
-function addRecentSolidColor(color) {
-  if (!color) return;
-  const c = color.toLowerCase();
-  const recents = (settings.recentSolidColors || []).filter((x) => x.toLowerCase() !== c);
-  recents.unshift(c);
-  settings.recentSolidColors = recents.slice(0, 7);
-  saveSettings();
-  renderRecentSolidColors();
-}
 
-function renderRecentSolidColors() {
-  const container = $("solidRecents");
-  const row = $("solidRecentRow");
-  if (!container || !row) return;
-  const list = settings.recentSolidColors || [];
-  if (!list.length) {
-    row.style.display = "none";
-    return;
-  }
-  row.style.display = "";
-  container.innerHTML = "";
-  list.forEach((col) => {
-    const btn = document.createElement("button");
-    btn.className = "dot";
-    btn.style.background = col;
-    btn.title = col;
-    if (settings.bgType === "solid" && settings.solidColor.toLowerCase() === col.toLowerCase()) {
-      btn.classList.add("active");
-    }
-    btn.onclick = () => {
-      settings.solidColor = col;
-      settings.bgType = "solid";
-      addRecentSolidColor(col);
-      applySettings();
-      saveSettings();
-      applyWallpaper();
-    };
-    container.appendChild(btn);
-  });
-}
 
 $$("#bgSegment button").forEach((btn) => {
   btn.addEventListener("click", () => {
     settings.bgType = btn.dataset.bgtype;
+    syncBgRotateUI();
     applySettings();
     saveSettings();
     applyWallpaper();
   });
 });
 
-$$("#solidPresets .dot").forEach((dot) => {
+$$("#solidPresets button.dot").forEach((dot) => {
   dot.addEventListener("click", () => {
     const col = dot.dataset.solid;
     settings.solidColor = col;
     settings.bgType = "solid";
     addRecentSolidColor(col);
+    syncBgRotateUI();
     applySettings();
     saveSettings();
     applyWallpaper();
@@ -1311,6 +2043,7 @@ $$("#solidPresets .dot").forEach((dot) => {
 $("optSolid")?.addEventListener("input", (e) => {
   settings.solidColor = e.target.value;
   settings.bgType = "solid";
+  syncBgRotateUI();
   applySettings();
   saveSettings();
   applyWallpaper();
@@ -1406,12 +2139,74 @@ bindToggle("optGrain", "grain");
 bindToggle("optSnap", "snap");
 
 bindValue("optName", "userName", (v) => v, renderIsland);
-bindValue("optGreetStyle", "greetStyle", (v) => v, renderIsland);
+bindValue("optGreetStyle", "greetStyle", (v) => v, (val) => {
+  const row = $("customGreetRow");
+  if (row) row.style.display = val === "custom" ? "" : "none";
+  renderIsland();
+});
+bindValue("optCustomGreet", "customGreet", (v) => v, renderIsland);
 bindValue("optEngine", "engine");
 bindValue("optClockFont", "clockFont");
 bindValue("optTint", "tint", Number, (value) => { $("optTintValue").textContent = `${value}%`; });
 bindValue("optBlur", "blur", Number);
-bindValue("optSolid", "solidColor");
+
+$("optDockSource")?.addEventListener("change", (e) => {
+  settings.dockSource = e.target.value;
+  saveSettings();
+  renderShortcuts();
+  renderShortcutList();
+});
+
+$("optDockLimit")?.addEventListener("change", (e) => {
+  settings.dockLimit = parseInt(e.target.value, 10) || 5;
+  saveSettings();
+  renderShortcuts();
+  renderShortcutList();
+});
+
+$("optShowAi")?.addEventListener("change", (e) => {
+  settings.showAi = e.target.checked;
+  const aiProviderRow = $("aiProviderRow");
+  if (aiProviderRow) aiProviderRow.style.display = settings.showAi ? "" : "none";
+  const aiCustomRow = $("aiCustomUrlRow");
+  if (aiCustomRow) aiCustomRow.style.display = settings.showAi && settings.aiProvider === "custom" ? "" : "none";
+  saveSettings();
+  renderAiButton();
+});
+
+$("optAiProvider")?.addEventListener("change", (e) => {
+  settings.aiProvider = e.target.value;
+  const aiCustomRow = $("aiCustomUrlRow");
+  if (aiCustomRow) aiCustomRow.style.display = settings.aiProvider === "custom" ? "" : "none";
+  saveSettings();
+  renderAiButton();
+});
+
+let aiUrlDebounce = null;
+$("optAiCustomUrl")?.addEventListener("input", (e) => {
+  clearTimeout(aiUrlDebounce);
+  aiUrlDebounce = setTimeout(() => {
+    settings.aiCustomUrl = e.target.value.trim();
+    saveSettings();
+    renderAiButton();
+  }, 300);
+});
+
+// Real-time synchronization for bookmarks bar changes
+if (typeof chrome !== "undefined" && chrome.bookmarks) {
+  const handleBookmarkChange = () => {
+    if (settings.dockSource === "bookmarks") {
+      renderShortcuts();
+      renderShortcutList();
+    }
+  };
+  try {
+    chrome.bookmarks.onCreated?.addListener(handleBookmarkChange);
+    chrome.bookmarks.onRemoved?.addListener(handleBookmarkChange);
+    chrome.bookmarks.onChanged?.addListener(handleBookmarkChange);
+    chrome.bookmarks.onMoved?.addListener(handleBookmarkChange);
+  } catch(e) {}
+}
 
 $("optUnit").addEventListener("input", () => {
   settings.unit = $("optUnit").value;
@@ -1423,6 +2218,7 @@ $$("#bgSwatches .dot").forEach((dot) => {
   dot.addEventListener("click", () => {
     settings.bg = dot.dataset.bg;
     settings.bgType = "gradient";
+    syncBgRotateUI();
     applySettings();
     saveSettings();
     applyWallpaper();
@@ -1436,6 +2232,9 @@ $("clockCustomColor").addEventListener("input", () => {
   settings.clockCustomColor = $("clockCustomColor").value;
   applySettings();
   saveSettings();
+});
+$("clockCustomColor").addEventListener("change", () => {
+  addRecentClockColor($("clockCustomColor").value);
 });
 $$("#scaleTiles .sw-tile").forEach((tile) => {
   tile.addEventListener("click", () => {
@@ -1456,27 +2255,26 @@ $("resetPositions").addEventListener("click", () => {
   layoutWidgets();
 });
 
-$("resetWidgets").addEventListener("click", () => {
-  ["showIsland","islandCycle","showClock","showDate","use24hr","showSeconds","showSearch",
-   "engine","showQuote","showWeather","unit"]
-    .forEach((k) => { settings[k] = DEFAULTS[k]; });
-  settings.positions = {};
-  syncControls();
-  applySettings();
+// ---- restore quote collections to defaults ----
+$("restoreQuoteCollectionsBtn")?.addEventListener("click", () => {
+  if (!confirm("Are you sure you want to reset quotes to default? This will restore all built-in collections and remove custom additions.")) return;
+  MY_QUOTES = [];
+  saveMyQuotes();
+  settings.excludedQuotes = [];
+  settings.quoteCats = getAllAuthors().map((a) => a.name);
   saveSettings();
-  layoutWidgets();
-  restartIslandTimer();
+  buildCategoryRows();
+  updateAuthorDatalist();
+  updateQuoteStats();
+  newQuote(true);
 });
 
-$("resetDock").addEventListener("click", () => {
-  SHORTCUTS = DEFAULT_SHORTCUTS.map((s) => ({ ...s }));
-  saveShortcuts();
-  renderShortcuts();
-  renderShortcutList();
-});
-
-$("resetAll").addEventListener("click", () => {
-  settings = { ...DEFAULTS, positions: {}, quoteCats: [...ALL_CATS] };
+// ---- master reset to defaults ----
+$("resetAll")?.addEventListener("click", () => {
+  if (!confirm("Are you sure you want to reset all settings, shortcuts, and widgets back to factory defaults?")) return;
+  // Clear excludedQuotes FIRST so getAllAuthors() sees all built-in quotes restored
+  settings = { ...DEFAULTS, positions: {}, excludedQuotes: [] };
+  settings.quoteCats = getAllAuthors().map((a) => a.name);
   SHORTCUTS = DEFAULT_SHORTCUTS.map((s) => ({ ...s }));
   saveSettings();
   saveShortcuts();
@@ -1484,8 +2282,13 @@ $("resetAll").addEventListener("click", () => {
   applySettings();
   renderShortcuts();
   renderShortcutList();
+  buildCategoryRows();
+  renderMyQuotes();
+  updateQuoteStats();
+  newQuote(true);
   layoutWidgets();
   restartIslandTimer();
+  initWeather();
 });
 
 // ---- export / import ----
@@ -1507,16 +2310,24 @@ $("importInput").addEventListener("change", (e) => {
     const data = JSON.parse(txt);
     if (data.app !== "liquid-tab") throw new Error("not a Liquid Tab export");
     settings = { ...DEFAULTS, ...(data.settings || {}) };
+    if (!Array.isArray(settings.excludedQuotes)) settings.excludedQuotes = [];
     if (Array.isArray(data.shortcuts)) SHORTCUTS = data.shortcuts;
     if (Array.isArray(data.myQuotes)) MY_QUOTES = data.myQuotes;
     if (!Array.isArray(settings.quoteCats) || !settings.quoteCats.length) {
-      settings.quoteCats = [...ALL_CATS];
+      settings.quoteCats = getAllAuthors().map((a) => a.name);
+    } else {
+      settings.quoteCats = [...new Set(settings.quoteCats.map(normalizeAuthorName))];
+      if (!settings.quoteCats.length) settings.quoteCats = getAllAuthors().map((a) => a.name);
     }
     saveSettings();
     saveShortcuts();
     saveMyQuotes();
     syncControls();
     applySettings();
+    buildCategoryRows();
+    renderMyQuotes();
+    updateQuoteStats();
+    newQuote(true);
     renderShortcuts();
     renderShortcutList();
     renderMyQuotes();
@@ -1533,7 +2344,7 @@ $("importInput").addEventListener("change", (e) => {
 // ============================================================
 const PANE_TITLES = {
   general: "General", widgets: "Widgets & Dock", quotes: "Quotes",
-  display: "Display", appearance: "Appearance",
+  appearance: "Appearance", about: "About",
 };
 
 let searchIndex = [];
@@ -1673,6 +2484,45 @@ function hashString(str) {
 // Stable random seed generated ONCE when this tab is opened
 const TAB_ROTATION_SEED = Math.floor(Math.random() * 1000000);
 
+/**
+ * Tiny seedable PRNG (mulberry32) — gives the same sequence every tab open
+ * for a given TAB_ROTATION_SEED, so solid + gradient stay consistent within
+ * a tab session even if applySettings() is called multiple times.
+ */
+function makePrng(seed) {
+  let s = seed >>> 0;
+  return function() {
+    s += 0x6d2b79f5;
+    let t = Math.imul(s ^ (s >>> 15), s | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// One PRNG instance per tab — call in order so each use gets a different value
+const _tabPrng = makePrng(TAB_ROTATION_SEED);
+const _TAB_RAND = [_tabPrng(), _tabPrng(), _tabPrng(), _tabPrng(), _tabPrng()];
+
+/** Returns a rich, dark, vivid colour as a hex string — different every tab. */
+function randomDarkSolidColor() {
+  const hue  = Math.round(_TAB_RAND[0] * 360);        // full hue wheel
+  const sat  = 30 + Math.round(_TAB_RAND[1] * 50);    // 30–80% saturation
+  const lig  = 8  + Math.round(_TAB_RAND[2] * 14);    // 8–22% lightness (always dark)
+  return `hsl(${hue},${sat}%,${lig}%)`;
+}
+
+/**
+ * Returns { c1, c2 } — two complementary vivid HSL colours for a gradient.
+ * c1 is bright/vibrant (light stop), c2 is deeper (mid), base is near-black.
+ */
+function randomGradientPair() {
+  const hue1 = Math.round(_TAB_RAND[3] * 360);
+  const hue2 = (hue1 + 140 + Math.round(_TAB_RAND[4] * 80)) % 360;  // offset 140–220°
+  const c1   = `hsl(${hue1},80%,72%)`;
+  const c2   = `hsl(${hue2},70%,38%)`;
+  return { c1, c2 };
+}
+
 /** A seed that only changes as often as the chosen rotation. */
 function rotationSeed(mode) {
   const d = new Date();
@@ -1683,14 +2533,40 @@ function rotationSeed(mode) {
 }
 
 function quotePool() {
-  const mine = MY_QUOTES
-    .filter((q) => q.text && q.text.trim())
-    .map((q) => [q.text.trim(), (q.author || "").trim(), "mine"]);
+  const enabledAuthors = new Set(
+    (settings.quoteCats || []).map(normalizeAuthorName)
+  );
+  const excludedSet = new Set(
+    (settings.excludedQuotes || []).map(normalizeQuoteText)
+  );
 
-  if (settings.quoteSource === "mine") return mine;
+  const pool = [];
 
-  const builtin = QUOTES.filter((q) => settings.quoteCats.includes(q[2]));
-  return settings.quoteSource === "both" ? builtin.concat(mine) : builtin;
+  // Built-in quotes
+  if (typeof QUOTES !== "undefined" && Array.isArray(QUOTES)) {
+    QUOTES.forEach((q) => {
+      const textNorm = normalizeQuoteText(q[0]);
+      if (excludedSet.has(textNorm)) return;
+      const author = normalizeAuthorName(q[1]);
+      if (enabledAuthors.has(author)) {
+        pool.push([q[0], author]);
+      }
+    });
+  }
+
+  // Custom quotes
+  if (Array.isArray(MY_QUOTES)) {
+    MY_QUOTES.forEach((q) => {
+      const text = (q.text || "").trim();
+      if (!text) return;
+      const author = normalizeAuthorName(q.author);
+      if (enabledAuthors.has(author)) {
+        pool.push([text, author]);
+      }
+    });
+  }
+
+  return pool;
 }
 
 let quoteOffset = 0;   // bumped by the shuffle button
@@ -1702,19 +2578,24 @@ function newQuote(animate = true) {
 
   const paint = () => {
     if (!pool.length) {
-      $("quoteText").textContent = settings.quoteSource === "mine"
-        ? "No quotes of your own yet — add some in Settings."
-        : "No categories selected.";
+      $("quoteText").textContent = "No quotes selected. Choose authors or add custom quotes in Settings.";
       $("quoteAuthor").textContent = "";
-      $("quoteCat").textContent = "";
+      if ($("quoteCat")) $("quoteCat").textContent = "";
       return;
     }
     const idx = (hashString(rotationSeed(settings.quoteRotate)) + quoteOffset) % pool.length;
-    const [text, author, cat] = pool[idx];
-    const cleanText = (text || "").trim().replace(/^["“](.*)["”]$/, "$1");
+    const [text, author] = pool[idx];
+    let cleanText = (text || "").trim().replace(/^["“](.*)["”]$/, "$1").trim();
+    const cleanAuthor = author ? author.replace(/^[—–-]\s*/, "").trim() : "";
+
+    if (cleanAuthor) {
+      const authorPattern = new RegExp(`[—–-]\\s*${cleanAuthor.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}\\s*$`, 'i');
+      cleanText = cleanText.replace(authorPattern, "").trim().replace(/^["“](.*)["”]$/, "$1").trim();
+    }
+
     $("quoteText").textContent = cleanText ? `“${cleanText}”` : "";
-    $("quoteAuthor").textContent = author ? `— ${author.replace(/^[—–-]\s*/, "")}` : "";
-    $("quoteCat").textContent = cat === "mine" ? "Mine" : (QUOTE_CATEGORIES[cat] || "");
+    $("quoteAuthor").textContent = cleanAuthor ? `— ${cleanAuthor}` : "";
+    if ($("quoteCat")) $("quoteCat").textContent = "";
   };
 
   if (!animate) { paint(); return; }
@@ -1727,129 +2608,664 @@ function shuffleQuote() {
   newQuote(true);
 }
 
+function areQuotesModified() {
+  const hasCustom = Array.isArray(MY_QUOTES) && MY_QUOTES.some((q) => (q.text || "").trim());
+  const hasExclusions = Array.isArray(settings.excludedQuotes) && settings.excludedQuotes.length > 0;
+  const cats = (settings.quoteCats || []).map(normalizeAuthorName);
+  const defaultCats = ["Alex Hormozi", "Leila Hormozi"].map(normalizeAuthorName);
+  const missingDefaultCat = defaultCats.some((c) => !cats.includes(c));
+  const hasNonDefaultCat = cats.some((c) => !defaultCats.includes(c));
+  return hasCustom || hasExclusions || missingDefaultCat || hasNonDefaultCat;
+}
+
+function syncQuoteResetVisibility() {
+  const row = $("resetQuotesRow");
+  if (!row) return;
+  row.style.display = areQuotesModified() ? "flex" : "none";
+}
+
 function updateQuoteStats() {
   const n = quotePool().length;
   const pool = $("quotePoolSize");
   if (pool) pool.textContent = `${n} quote${n === 1 ? "" : "s"}`;
   const about = $("aboutQuotes");
-  if (about) about.textContent = `${QUOTES.length} built-in · ${MY_QUOTES.length} mine`;
+  if (about) {
+    const validMine = (MY_QUOTES || []).filter((q) => (q.text || "").trim()).length;
+    const excludedSet = new Set((settings.excludedQuotes || []).map(normalizeQuoteText));
+    const builtinCount = typeof QUOTES !== "undefined" && Array.isArray(QUOTES)
+      ? QUOTES.filter((q) => !excludedSet.has(normalizeQuoteText(q[0]))).length
+      : 0;
+    about.textContent = `${builtinCount} built-in · ${validMine} custom`;
+  }
+  syncQuoteResetVisibility();
 }
 
 function buildCategoryRows() {
   const wrap = $("quoteCats");
-  if (!wrap || wrap.children.length) return;
+  if (!wrap) return;
 
-  Object.entries(QUOTE_CATEGORIES).forEach(([key, label]) => {
-    const count = QUOTES.filter((q) => q[2] === key).length;
-    const row = document.createElement("label");
-    row.className = "sw-row cat-row";
+  // Remember which author drawers are currently expanded
+  const expandedAuthors = new Set(
+    $$("#quoteCats .author-row.expanded").map((r) => r.dataset.author)
+  );
 
-    const name = document.createElement("span");
-    name.className = "sw-row-label";
-    name.textContent = label;
+  wrap.innerHTML = "";
 
-    const right = document.createElement("span");
-    right.style.display = "flex";
-    right.style.alignItems = "center";
+  const allAuthors = getAllAuthors();
+  if (!allAuthors.length) {
+    wrap.innerHTML = `<div class="sw-empty quiet">No authors available.</div>`;
+    return;
+  }
 
-    const cnt = document.createElement("span");
-    cnt.className = "cat-count";
-    cnt.textContent = count;
+  if (!Array.isArray(settings.quoteCats) || !settings.quoteCats.length) {
+    settings.quoteCats = allAuthors.map((a) => a.name);
+    saveSettings();
+  }
 
+  const enabledSet = new Set(settings.quoteCats.map(normalizeAuthorName));
+  const excludedSet = new Set((settings.excludedQuotes || []).map(normalizeQuoteText));
+
+  allAuthors.forEach(({ name, count }) => {
+    const norm = normalizeAuthorName(name);
+    const isBuiltIn = ["Alex Hormozi", "Leila Hormozi"].includes(norm);
+
+    const authorCustomQuotes = (MY_QUOTES || []).filter(
+      (q) => (q.text || "").trim() && normalizeAuthorName(q.author) === norm
+    );
+
+    const allAuthorBuiltin = (typeof QUOTES !== "undefined" && Array.isArray(QUOTES))
+      ? QUOTES.filter((q) => normalizeAuthorName(q[1]) === norm)
+      : [];
+
+    const activeBuiltinQuotes = allAuthorBuiltin.filter(
+      (q) => !excludedSet.has(normalizeQuoteText(q[0]))
+    );
+
+    const excludedCount = allAuthorBuiltin.length - activeBuiltinQuotes.length;
+
+    const row = document.createElement("div");
+    row.className = "author-row";
+    row.dataset.author = name;
+    if (expandedAuthors.has(name)) {
+      row.classList.add("expanded");
+    }
+
+    const header = document.createElement("div");
+    header.className = "author-header";
+
+    const left = document.createElement("div");
+    left.className = "author-left";
+
+    const chevron = document.createElement("span");
+    chevron.className = "author-chevron";
+    chevron.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m9 18 6-6-6-6"/></svg>`;
+
+    const info = document.createElement("div");
+    info.className = "author-info";
+
+    const nameEl = document.createElement("span");
+    nameEl.className = "author-name";
+    nameEl.textContent = name;
+
+    const subEl = document.createElement("span");
+    subEl.className = "author-sub";
+    subEl.textContent = `${count} quote${count === 1 ? "" : "s"} · ${isBuiltIn ? "Built-in" : "Custom Collection"}`;
+
+    info.append(nameEl, subEl);
+    left.append(chevron, info);
+
+    const right = document.createElement("div");
+    right.className = "author-right";
+
+    const countBadge = document.createElement("span");
+    countBadge.className = "author-count-badge";
+    countBadge.textContent = count;
+    right.appendChild(countBadge);
+
+    // Delete Collection handler
+    const handleDeleteCollection = () => {
+      const isCustomOnly = authorCustomQuotes.length > 0 && allAuthorBuiltin.length === 0;
+      const promptText = isCustomOnly
+        ? `Delete the entire "${name}" collection (${authorCustomQuotes.length} quotes)?`
+        : `Remove all ${count} quotes in the "${name}" collection?`;
+
+      if (confirm(promptText)) {
+        if (authorCustomQuotes.length > 0) {
+          MY_QUOTES = MY_QUOTES.filter((q) => normalizeAuthorName(q.author) !== norm);
+          saveMyQuotes();
+        }
+        if (activeBuiltinQuotes.length > 0) {
+          const newExclusions = activeBuiltinQuotes.map((q) => normalizeQuoteText(q[0]));
+          settings.excludedQuotes = [...(settings.excludedQuotes || []), ...newExclusions];
+        }
+        settings.quoteCats = (settings.quoteCats || []).filter((c) => normalizeAuthorName(c) !== norm);
+        saveSettings();
+        buildCategoryRows();
+        updateAuthorDatalist();
+        updateQuoteStats();
+        newQuote(true);
+      }
+    };
+
+    // Header trash icon for deleting the collection
+    const delAuthorBtn = document.createElement("button");
+    delAuthorBtn.className = "author-del-btn";
+    delAuthorBtn.title = `Delete "${name}" collection`;
+    delAuthorBtn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`;
+    delAuthorBtn.onclick = (e) => {
+      e.stopPropagation();
+      handleDeleteCollection();
+    };
+    right.appendChild(delAuthorBtn);
+
+    // Author toggle switch
     const cb = document.createElement("input");
     cb.type = "checkbox";
     cb.className = "sw-toggle";
-    cb.dataset.cat = key;
+    cb.dataset.author = name;
+    cb.checked = enabledSet.has(norm);
+
+    cb.onclick = (e) => e.stopPropagation();
     cb.addEventListener("change", () => {
-      const on = $$("#quoteCats input").filter((i) => i.checked).map((i) => i.dataset.cat);
-      if (!on.length) { cb.checked = true; return; }   // never leave the pool empty
+      const on = $$("#quoteCats input.sw-toggle").filter((i) => i.checked).map((i) => i.dataset.author);
+      if (!on.length) {
+        cb.checked = true;
+        return; // never leave the pool empty
+      }
       settings.quoteCats = on;
       saveSettings();
       updateQuoteStats();
       newQuote(true);
     });
 
-    right.append(cnt, cb);
-    row.append(name, right);
+    right.appendChild(cb);
+    header.append(left, right);
+    row.appendChild(header);
+
+    // Expandable quotes drawer
+    const drawer = document.createElement("div");
+    drawer.className = "author-quotes-list";
+
+    // Drawer toolbar
+    const toolbar = document.createElement("div");
+    toolbar.className = "author-drawer-toolbar";
+
+    // Search filter input
+    const searchWrap = document.createElement("div");
+    searchWrap.className = "author-search-wrap";
+    searchWrap.innerHTML = `<svg class="author-search-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>`;
+    const searchInput = document.createElement("input");
+    searchInput.type = "text";
+    searchInput.className = "author-search-input";
+    searchInput.placeholder = `Filter quotes by ${name}...`;
+    searchInput.onclick = (e) => e.stopPropagation();
+    searchWrap.appendChild(searchInput);
+    toolbar.appendChild(searchWrap);
+
+    // Actions toolbar
+    const actionsRow = document.createElement("div");
+    actionsRow.className = "author-drawer-actions";
+
+    const actionsLeft = document.createElement("div");
+    actionsLeft.className = "author-actions-left";
+
+    const selectAllBtn = document.createElement("button");
+    selectAllBtn.type = "button";
+    selectAllBtn.className = "author-action-btn";
+    selectAllBtn.textContent = "Select All";
+    actionsLeft.appendChild(selectAllBtn);
+
+    const selCountSpan = document.createElement("span");
+    selCountSpan.className = "author-selected-count";
+    selCountSpan.style.display = "none";
+    actionsLeft.appendChild(selCountSpan);
+
+    const delSelectedBtn = document.createElement("button");
+    delSelectedBtn.type = "button";
+    delSelectedBtn.className = "author-action-btn danger";
+    delSelectedBtn.style.display = "none";
+    delSelectedBtn.textContent = "Delete Selected";
+    actionsLeft.appendChild(delSelectedBtn);
+
+    const actionsRight = document.createElement("div");
+    actionsRight.className = "author-actions-right";
+
+    if (excludedCount > 0) {
+      const restoreBtn = document.createElement("button");
+      restoreBtn.type = "button";
+      restoreBtn.className = "author-action-btn restore";
+      restoreBtn.title = "Restore quotes that were previously removed from this built-in collection";
+      restoreBtn.textContent = `↺ Restore (${excludedCount})`;
+      restoreBtn.onclick = (e) => {
+        e.stopPropagation();
+        const builtInKeys = new Set(allAuthorBuiltin.map((q) => normalizeQuoteText(q[0])));
+        settings.excludedQuotes = (settings.excludedQuotes || []).filter(
+          (k) => !builtInKeys.has(normalizeQuoteText(k))
+        );
+        if (!settings.quoteCats.includes(name)) {
+          settings.quoteCats.push(name);
+        }
+        saveSettings();
+        buildCategoryRows();
+        updateQuoteStats();
+        newQuote(true);
+      };
+      actionsRight.appendChild(restoreBtn);
+    }
+
+    const delColBtn = document.createElement("button");
+    delColBtn.type = "button";
+    delColBtn.className = "author-action-btn danger";
+    delColBtn.textContent = "Delete Collection";
+    delColBtn.onclick = (e) => {
+      e.stopPropagation();
+      handleDeleteCollection();
+    };
+    actionsRight.appendChild(delColBtn);
+
+    actionsRow.append(actionsLeft, actionsRight);
+    toolbar.appendChild(actionsRow);
+    drawer.appendChild(toolbar);
+
+    // Quotes container
+    const itemsContainer = document.createElement("div");
+    itemsContainer.className = "author-quotes-items";
+
+    const emptyFilterMsg = document.createElement("div");
+    emptyFilterMsg.className = "author-empty-filter";
+    emptyFilterMsg.style.display = "none";
+    emptyFilterMsg.textContent = "No matching quotes found.";
+    itemsContainer.appendChild(emptyFilterMsg);
+
+    // Selection helper
+    const updateSelectionUI = () => {
+      const visibleItems = [...itemsContainer.querySelectorAll(".author-quote-item")].filter(
+        (it) => it.style.display !== "none"
+      );
+      const visibleCheckboxes = visibleItems.map((it) => it.querySelector(".author-quote-cb")).filter(Boolean);
+      const checkedBoxes = visibleCheckboxes.filter((cb) => cb.checked);
+
+      if (checkedBoxes.length > 0) {
+        selCountSpan.textContent = `${checkedBoxes.length} selected`;
+        selCountSpan.style.display = "inline";
+        delSelectedBtn.textContent = `Delete Selected (${checkedBoxes.length})`;
+        delSelectedBtn.style.display = "inline-flex";
+        selectAllBtn.textContent = checkedBoxes.length === visibleCheckboxes.length ? "Deselect All" : "Select All";
+      } else {
+        selCountSpan.style.display = "none";
+        delSelectedBtn.style.display = "none";
+        selectAllBtn.textContent = "Select All";
+      }
+    };
+
+    selectAllBtn.onclick = (e) => {
+      e.stopPropagation();
+      const visibleItems = [...itemsContainer.querySelectorAll(".author-quote-item")].filter(
+        (it) => it.style.display !== "none"
+      );
+      const visibleCheckboxes = visibleItems.map((it) => it.querySelector(".author-quote-cb")).filter(Boolean);
+      const allChecked = visibleCheckboxes.length > 0 && visibleCheckboxes.every((cb) => cb.checked);
+      visibleCheckboxes.forEach((cb) => (cb.checked = !allChecked));
+      updateSelectionUI();
+    };
+
+    delSelectedBtn.onclick = (e) => {
+      e.stopPropagation();
+      const checkedItems = [...itemsContainer.querySelectorAll(".author-quote-item")].filter((item) => {
+        const cb = item.querySelector(".author-quote-cb");
+        return cb && cb.checked;
+      });
+      if (!checkedItems.length) return;
+
+      if (confirm(`Delete ${checkedItems.length} selected quote${checkedItems.length === 1 ? "" : "s"}?`)) {
+        let myQuotesChanged = false;
+        let settingsChanged = false;
+
+        checkedItems.forEach((item) => {
+          const type = item.dataset.type;
+          const rawText = item.dataset.text;
+          if (type === "custom") {
+            const idx = MY_QUOTES.findIndex(
+              (q) => normalizeAuthorName(q.author) === norm && (q.text || "").trim() === rawText
+            );
+            if (idx !== -1) {
+              MY_QUOTES.splice(idx, 1);
+              myQuotesChanged = true;
+            }
+          } else if (type === "builtin") {
+            const normKey = normalizeQuoteText(rawText);
+            if (!settings.excludedQuotes.includes(normKey)) {
+              settings.excludedQuotes.push(normKey);
+              settingsChanged = true;
+            }
+          }
+        });
+
+        if (myQuotesChanged) saveMyQuotes();
+        if (settingsChanged) saveSettings();
+
+        buildCategoryRows();
+        updateAuthorDatalist();
+        updateQuoteStats();
+        newQuote(true);
+      }
+    };
+
+    // Filter listener
+    searchInput.addEventListener("input", () => {
+      const q = searchInput.value.trim().toLowerCase();
+      let matchCount = 0;
+      const items = itemsContainer.querySelectorAll(".author-quote-item");
+      items.forEach((it) => {
+        const text = (it.dataset.text || "").toLowerCase();
+        const matches = !q || text.includes(q);
+        it.style.display = matches ? "flex" : "none";
+        if (matches) matchCount++;
+      });
+      emptyFilterMsg.style.display = (items.length > 0 && matchCount === 0) ? "block" : "none";
+      updateSelectionUI();
+    });
+
+    // Custom quotes items
+    authorCustomQuotes.forEach((q) => {
+      const rawText = (q.text || "").trim();
+      const item = document.createElement("div");
+      item.className = "author-quote-item";
+      item.dataset.type = "custom";
+      item.dataset.text = rawText;
+
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.className = "author-quote-cb";
+      cb.title = "Select quote";
+      cb.onclick = (e) => {
+        e.stopPropagation();
+        updateSelectionUI();
+      };
+
+      const textEl = document.createElement("p");
+      textEl.className = "author-quote-text";
+      textEl.textContent = `“${rawText}”`;
+
+      const pill = document.createElement("span");
+      pill.className = "author-quote-pill";
+      pill.textContent = "Custom";
+
+      const delBtn = document.createElement("button");
+      delBtn.className = "author-quote-del";
+      delBtn.innerHTML = "×";
+      delBtn.title = "Delete this quote";
+      delBtn.onclick = (e) => {
+        e.stopPropagation();
+        const idx = MY_QUOTES.indexOf(q);
+        if (idx !== -1) {
+          MY_QUOTES.splice(idx, 1);
+          saveMyQuotes();
+          buildCategoryRows();
+          updateAuthorDatalist();
+          updateQuoteStats();
+          newQuote(true);
+        }
+      };
+
+      item.append(cb, textEl, pill, delBtn);
+      itemsContainer.appendChild(item);
+    });
+
+    // Built-in quotes items
+    activeBuiltinQuotes.forEach((q) => {
+      const rawText = String(q[0] || "").trim();
+      const item = document.createElement("div");
+      item.className = "author-quote-item";
+      item.dataset.type = "builtin";
+      item.dataset.text = rawText;
+
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.className = "author-quote-cb";
+      cb.title = "Select quote";
+      cb.onclick = (e) => {
+        e.stopPropagation();
+        updateSelectionUI();
+      };
+
+      const textEl = document.createElement("p");
+      textEl.className = "author-quote-text";
+      textEl.textContent = `“${rawText}”`;
+
+      const delBtn = document.createElement("button");
+      delBtn.className = "author-quote-del";
+      delBtn.innerHTML = "×";
+      delBtn.title = "Delete this quote";
+      delBtn.onclick = (e) => {
+        e.stopPropagation();
+        const normKey = normalizeQuoteText(rawText);
+        settings.excludedQuotes = [...(settings.excludedQuotes || []), normKey];
+        saveSettings();
+        buildCategoryRows();
+        updateQuoteStats();
+        newQuote(true);
+      };
+
+      item.append(cb, textEl, delBtn);
+      itemsContainer.appendChild(item);
+    });
+
+    // Empty notice if all quotes removed
+    if (count === 0) {
+      const noQuotesMsg = document.createElement("div");
+      noQuotesMsg.className = "author-empty-notice";
+      noQuotesMsg.textContent = "All quotes in this collection have been removed.";
+      itemsContainer.appendChild(noQuotesMsg);
+    }
+
+    drawer.appendChild(itemsContainer);
+    row.appendChild(drawer);
+
+    // Toggle expand / collapse
+    header.addEventListener("click", () => {
+      row.classList.toggle("expanded");
+    });
+
     wrap.appendChild(row);
   });
 }
 
 function renderMyQuotes() {
-  const list = $("myQuoteList");
-  if (!list) return;
-  list.innerHTML = "";
-
-  if (!MY_QUOTES.length) {
-    list.innerHTML = `<div class="sw-empty quiet">Nothing here yet. Add a quote you want to see.</div>`;
-    updateQuoteStats();
-    return;
-  }
-
-  MY_QUOTES.forEach((q, i) => {
-    const row = document.createElement("div");
-    row.className = "mq-row";
-
-    const fields = document.createElement("div");
-    fields.className = "mq-fields";
-
-    const text = document.createElement("textarea");
-    text.value = q.text || "";
-    text.placeholder = "The quote itself…";
-    text.rows = 2;
-    text.addEventListener("input", () => {
-      MY_QUOTES[i].text = text.value;
-      saveMyQuotes();
-      updateQuoteStats();
-    });
-
-    const author = document.createElement("input");
-    author.type = "text";
-    author.value = q.author || "";
-    author.placeholder = "Author (optional)";
-    author.addEventListener("input", () => {
-      MY_QUOTES[i].author = author.value;
-      saveMyQuotes();
-    });
-
-    fields.append(text, author);
-
-    const del = document.createElement("button");
-    del.className = "sc-del";
-    del.innerHTML = X_SVG;
-    del.title = "Remove quote";
-    del.onclick = () => {
-      MY_QUOTES.splice(i, 1);
-      saveMyQuotes();
-      renderMyQuotes();
-      newQuote(true);
-    };
-
-    row.append(fields, del);
-    list.appendChild(row);
-  });
-
+  updateAuthorDatalist();
+  buildCategoryRows();
   updateQuoteStats();
 }
 
 $("quoteShuffle").addEventListener("click", (e) => { e.stopPropagation(); shuffleQuote(); });
 
-$("addQuoteBtn").addEventListener("click", () => {
-  MY_QUOTES.push({ text: "", author: "" });
-  saveMyQuotes();
-  renderMyQuotes();
-  const ta = document.querySelector("#myQuoteList .mq-row:last-child textarea");
-  if (ta) ta.focus();
+// Open inline "+ Add Quote" drawer
+$("openAddQuoteBtn")?.addEventListener("click", () => {
+  const drawer = $("addQuoteDrawer");
+  if (!drawer) return;
+  const isHidden = drawer.style.display === "none" || !drawer.style.display;
+  drawer.style.display = isHidden ? "block" : "none";
+  if (isHidden) {
+    const input = $("newQuoteText");
+    if (input) {
+      input.value = "";
+      input.focus();
+    }
+  }
 });
 
-$$("#quoteSourceSeg button").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    settings.quoteSource = btn.dataset.src;
-    $$("#quoteSourceSeg button").forEach((b) => b.classList.toggle("active", b === btn));
+// Cancel inline "+ Add Quote" drawer
+$("cancelNewQuoteBtn")?.addEventListener("click", () => {
+  const drawer = $("addQuoteDrawer");
+  if (drawer) drawer.style.display = "none";
+  if ($("newQuoteText")) $("newQuoteText").value = "";
+  if ($("newQuoteAuthor")) $("newQuoteAuthor").value = "";
+});
+
+// Save from inline "+ Add Quote" drawer
+$("saveNewQuoteBtn")?.addEventListener("click", () => {
+  const textEl = $("newQuoteText");
+  const authorEl = $("newQuoteAuthor");
+  const text = textEl ? textEl.value.trim() : "";
+  const author = authorEl ? authorEl.value.trim() : "";
+
+  if (!text) {
+    alert("Please enter a quote text.");
+    if (textEl) textEl.focus();
+    return;
+  }
+
+  const finalAuthor = author || "Unknown Author";
+  MY_QUOTES.push({ text, author: finalAuthor });
+  saveMyQuotes();
+
+  const norm = normalizeAuthorName(finalAuthor);
+  const currentEnabled = (settings.quoteCats || []).map(normalizeAuthorName);
+  if (!currentEnabled.includes(norm)) {
+    settings.quoteCats = [...currentEnabled, norm];
     saveSettings();
-    updateQuoteStats();
-    newQuote(true);
-  });
+  }
+
+  buildCategoryRows();
+  updateAuthorDatalist();
+  updateQuoteStats();
+  newQuote(false);
+
+  // Close drawer and reset inputs
+  const drawer = $("addQuoteDrawer");
+  if (drawer) drawer.style.display = "none";
+  if (textEl) textEl.value = "";
+  if (authorEl) authorEl.value = "";
+});
+
+// Import complete files containing multiple quotes from multiple authors
+$("importQuotesBtn")?.addEventListener("click", () => {
+  $("quoteFileInput")?.click();
+});
+
+$("quoteFileInput")?.addEventListener("change", (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const raw = (reader.result || "").trim();
+      let imported = [];
+
+      // 1. JSON parsing
+      if (file.name.endsWith(".json") || raw.startsWith("[") || raw.startsWith("{")) {
+        const parsed = JSON.parse(raw);
+        let items = [];
+        if (Array.isArray(parsed)) {
+          items = parsed;
+        } else if (parsed && typeof parsed === "object") {
+          if (Array.isArray(parsed.quotes)) items = parsed.quotes;
+          else if (Array.isArray(parsed.myQuotes)) items = parsed.myQuotes;
+          else {
+            // Dictionary where key is author and value is array of quotes
+            Object.entries(parsed).forEach(([authorName, quoteList]) => {
+              if (Array.isArray(quoteList)) {
+                quoteList.forEach((q) => {
+                  items.push({ text: typeof q === "string" ? q : q.text || q.quote, author: authorName });
+                });
+              }
+            });
+          }
+        }
+
+        items.forEach((item) => {
+          if (Array.isArray(item) && item.length >= 1) {
+            imported.push({
+              text: String(item[0] || "").trim(),
+              author: String(item[1] || "").trim() || "Unknown Author",
+            });
+          } else if (item && typeof item === "object" && (item.text || item.quote)) {
+            imported.push({
+              text: String(item.text || item.quote || "").trim(),
+              author: String(item.author || item.by || item.category || "").trim() || "Unknown Author",
+            });
+          }
+        });
+      } else {
+        // 2. CSV / TSV or Line-based text
+        const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+        lines.forEach((line, lineIdx) => {
+          const delimiter = line.includes("\t") ? "\t" : line.includes(",") ? "," : null;
+          if (delimiter) {
+            // Simple CSV split with quote stripping
+            const parts = line.split(delimiter).map((p) => p.trim().replace(/^["'](.*)["']$/, "$1").trim());
+            if (lineIdx === 0 && ["quote", "text"].includes(parts[0].toLowerCase())) return;
+            if (parts[0]) {
+              imported.push({
+                text: parts[0],
+                author: parts[1] || parts[2] || "Unknown Author",
+              });
+            }
+          } else {
+            // Text matching "Quote" — Author or Quote - Author
+            const match = line.match(/^["“]?(.*?)["”]?(?:\s+[—–~-]\s+(.*))?$/);
+            if (match && match[1] && match[1].trim()) {
+              imported.push({
+                text: match[1].trim(),
+                author: (match[2] || "").trim() || "Unknown Author",
+              });
+            }
+          }
+        });
+      }
+
+      if (!imported.length) {
+        alert("No valid quotes found in the selected file.");
+        return;
+      }
+
+      let addedCount = 0;
+      const authorSummary = new Map();
+      const existingTexts = new Set(MY_QUOTES.map((q) => (q.text || "").toLowerCase().trim()));
+
+      imported.forEach((q) => {
+        const key = (q.text || "").toLowerCase().trim();
+        if (key && !existingTexts.has(key)) {
+          existingTexts.add(key);
+          const authorName = (q.author || "").trim() || "Unknown Author";
+          const norm = normalizeAuthorName(authorName);
+
+          MY_QUOTES.push({
+            text: q.text.trim(),
+            author: authorName,
+          });
+          addedCount++;
+
+          authorSummary.set(norm, (authorSummary.get(norm) || 0) + 1);
+
+          // Automatically enable new author toggle
+          const currentEnabled = (settings.quoteCats || []).map(normalizeAuthorName);
+          if (!currentEnabled.includes(norm)) {
+            settings.quoteCats = [...currentEnabled, norm];
+          }
+        }
+      });
+
+      saveSettings();
+      saveMyQuotes();
+      buildCategoryRows();
+      updateAuthorDatalist();
+      updateQuoteStats();
+      newQuote(true);
+
+      const authorsListStr = [...authorSummary.entries()]
+        .map(([auth, cnt]) => `• ${auth} (${cnt} quote${cnt === 1 ? "" : "s"})`)
+        .join("\n");
+
+      alert(`Successfully imported ${addedCount} new quote${addedCount === 1 ? "" : "s"} across ${authorSummary.size} author${authorSummary.size === 1 ? "" : "s"}!\n\n${authorsListStr}`);
+    } catch (err) {
+      alert("Could not import quotes. Please check that the file is valid JSON, CSV, or text.");
+    } finally {
+      e.target.value = "";
+    }
+  };
+  reader.readAsText(file);
 });
 
 bindValue("optQuoteRotate", "quoteRotate", (v) => v, () => newQuote(true));
@@ -1887,38 +3303,42 @@ function setupBgRotateTimer() {
     clearInterval(bgRotateTimer);
     bgRotateTimer = null;
   }
+  const rot = getBgRotate(settings.bgType);
   let ms = 0;
-  if (settings.bgRotate === "5min") ms = 5 * 60 * 1000;
-  else if (settings.bgRotate === "15min") ms = 15 * 60 * 1000;
-  else if (settings.bgRotate === "hour") ms = 60 * 60 * 1000;
+  if (rot === "5min") ms = 5 * 60 * 1000;
+  else if (rot === "15min") ms = 15 * 60 * 1000;
+  else if (rot === "hour") ms = 60 * 60 * 1000;
 
   if (ms > 0) {
     bgRotateTimer = setInterval(() => {
       if (settings.bgType === "unsplash") {
         applyUnsplashWallpaper(true);
-      } else {
+      } else if (settings.bgType === "photo") {
         applyWallpaper();
+      } else {
+        applySettings();
       }
     }, ms);
   }
 }
 
 /** An index that only changes as often as the rotation setting. */
-function rotationIndex(count) {
+function rotationIndex(count, type = settings.bgType) {
   if (count <= 0) return 0;
-  if (settings.bgRotate === "never") return 0;
-  if (settings.bgRotate === "tab") {
+  const rot = getBgRotate(type);
+  if (rot === "never") return 0;
+  if (rot === "tab") {
     return TAB_ROTATION_SEED % count;
   }
-  if (settings.bgRotate === "5min") {
+  if (rot === "5min") {
     const bucket = Math.floor(Date.now() / (5 * 60 * 1000));
     return bucket % count;
   }
-  if (settings.bgRotate === "15min") {
+  if (rot === "15min") {
     const bucket = Math.floor(Date.now() / (15 * 60 * 1000));
     return bucket % count;
   }
-  return hashString(rotationSeed(settings.bgRotate)) % count;
+  return hashString(rotationSeed(rot)) % count;
 }
 
 function setCredit(text, url) {
@@ -1945,7 +3365,10 @@ function applyUnsplashWallpaper(bump = false) {
   if (bump) {
     currentUnsplashOffset = (currentUnsplashOffset + 1) % pool.length;
   }
-  const idx = (rotationIndex(pool.length) + currentUnsplashOffset) % pool.length;
+  const unsplashRot = getBgRotate("unsplash");
+  const idx = unsplashRot === "never"
+    ? 0
+    : (rotationIndex(pool.length, "unsplash") + currentUnsplashOffset) % pool.length;
   const item = pool[idx];
   const url = `https://images.unsplash.com/${item.id}?auto=format&fit=crop&w=2560&q=85`;
 
@@ -2065,9 +3488,9 @@ function applyWallpaper() {
       revealApp();
       return;
     }
-    const rec = settings.bgRotate === "never"
+    const rec = getBgRotate("photo") === "never"
       ? (photos.find((p) => p.id === settings.photoId) || photos[0])
-      : photos[rotationIndex(photos.length)];
+      : photos[rotationIndex(photos.length, "photo")];
 
     revokeWallpaperUrls();
     let photoSrc = "";
@@ -2122,7 +3545,14 @@ function initWallpaper() {
   setTimeout(revealApp, 5000);
 }
 
-bindValue("optBgRotate", "bgRotate", (v) => v, applyWallpaper);
+$("optBgRotate")?.addEventListener("change", (e) => {
+  setBgRotate(e.target.value, settings.bgType);
+  if (settings.bgType === "unsplash" || settings.bgType === "photo") {
+    applyWallpaper();
+  } else {
+    applySettings();
+  }
+});
 bindValue("optUnsplashCat", "unsplashCat", (v) => v, () => applyWallpaper());
 
 const unsplashNextBtn = $("unsplashNext");
@@ -2248,7 +3678,10 @@ function applyAutoClockContrast(directUrl = null) {
   };
 
   if (settings.bgType === "solid") {
-    finish(hexLuminance(settings.solidColor) > 0.45);
+    const activeSolid = getBgRotate("solid") !== "never"
+      ? randomDarkSolidColor()
+      : settings.solidColor;
+    finish(hexLuminance(activeSolid) > 0.45);
     return;
   }
 
@@ -2266,8 +3699,10 @@ function applyAutoClockContrast(directUrl = null) {
   if (resolvedMode() === "light") {
     finish(true);
   } else {
-    const theme = settings.bg || "green";
-    const lum = THEME_LUMINANCE[theme] !== undefined ? THEME_LUMINANCE[theme] : 0.2;
+    const activeTheme = (settings.bgType === "gradient" && getBgRotate("gradient") !== "never")
+      ? GRADIENT_THEMES[rotationIndex(GRADIENT_THEMES.length, "gradient")]
+      : (settings.bg || "green");
+    const lum = THEME_LUMINANCE[activeTheme] !== undefined ? THEME_LUMINANCE[activeTheme] : 0.2;
     finish(lum > 0.55);
   }
 }

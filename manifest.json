@@ -1,25 +1,34 @@
 {
   "manifest_version": 3,
-  "name": "Liquid Tab",
-  "version": "4.0",
-  "description": "A liquid-glass new tab with a Now Island, clock, daily quotes, weather, calendar and a magnifying shortcut dock.",
+  "name": "Lume",
+  "version": "4.1",
+  "description": "A sleek new tab with a live Now Island, clock, daily quotes, weather, custom dock and beautiful rotating backgrounds.",
   "chrome_url_overrides": {
     "newtab": "index.html"
   },
   "icons": {
-    "16": "icons/icon-16.png",
-    "48": "icons/icon-48.png",
+    "16":  "icons/icon-16.png",
+    "32":  "icons/icon-32.png",
+    "48":  "icons/icon-48.png",
     "128": "icons/icon-128.png"
   },
   "permissions": [
     "storage",
-    "geolocation"
+    "geolocation",
+    "topSites",
+    "bookmarks",
+    "favicon"
   ],
   "host_permissions": [
     "https://api.open-meteo.com/*",
     "https://geocoding-api.open-meteo.com/*",
     "https://images.unsplash.com/*",
     "https://ipapi.co/*",
-    "https://ipwho.is/*"
+    "https://ipwho.is/*",
+    "https://api.bigdatacloud.net/*",
+    "https://unavatar.io/*",
+    "https://*.google.com/*",
+    "https://*.gstatic.com/*",
+    "https://icons.duckduckgo.com/*"
   ]
 }

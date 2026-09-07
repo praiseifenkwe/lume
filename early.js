@@ -13,6 +13,7 @@
       if (s.scale) target.dataset.scale = s.scale;
       if (s.clockFont) target.dataset.clockFont = s.clockFont;
       if (s.clockColor) target.dataset.clockColor = s.clockColor;
+      if (s.clockColor === "custom" && s.clockCustomColor) target.style.setProperty("--clock-custom-color", s.clockCustomColor);
       if (s.tint !== undefined) target.style.setProperty("--tint", s.tint / 100);
       if (s.solidColor && s.bgType === "solid") target.style.setProperty("--base", s.solidColor);
       if (s.bgType === "gradient" && s.bg === "custom" && s.customGradient) {
