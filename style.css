@@ -1337,14 +1337,18 @@ body[data-mode="light"] .glass::after {
   background: radial-gradient(340px circle at var(--mx,50%) var(--my,0%), rgba(255,255,255,.55), transparent 62%);
 }
 body[data-mode="light"] .clock {
-  background-image: linear-gradient(175deg, #10141a 20%, rgba(16,20,26,.66));
+  color: #10141a;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.70), 0 2px 8px rgba(255, 255, 255, 0.35);
+}
+body[data-mode="light"] .date {
+  color: #10141a;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.60);
 }
 body[data-mode="light"] .search input { color: #10141a; }
 body[data-mode="light"] .search input::placeholder { color: rgba(18,20,24,.45); }
-body[data-mode="light"] body[data-mode="light"] .dock a { background: rgba(248,248,248,.96); border-color: rgba(255,255,255,.72); }
-body[data-mode="light"] .dock { background: rgba(31, 34, 35, .62); }
-body[data-mode="light"] .dock a { background: rgba(248,248,248,.96); border-color: rgba(255,255,255,.72); color: #4b4b4d; }
-body[data-mode="light"] .dock a:hover { background: #fff; color: #252527; }
+body[data-mode="light"] .dock { background: rgba(255, 255, 255, 0.62); border-color: rgba(255, 255, 255, 0.85); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); }
+body[data-mode="light"] .dock a { background: rgba(255, 255, 255, 0.85); border-color: rgba(0, 0, 0, 0.06); color: #252527; }
+body[data-mode="light"] .dock a:hover { background: #ffffff; color: #000; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12); }
 body[data-mode="light"] .dock a::after { background: rgba(255,255,255,.94); color: #10141a; border-color: rgba(0,0,0,.1); }
 body[data-mode="light"] .dock-divider { background: rgba(0,0,0,.12); }
 body[data-mode="light"] .icon-btn:hover { background: rgba(0,0,0,.07); color: #10141a; }
@@ -2779,10 +2783,6 @@ body[data-mode="light"] .sw-hint-items code {
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
 }
-.lume-about-link-icon.coffee {
-  background: rgba(255, 221, 87, 0.16);
-  color: #ffdd57;
-}
 .lume-link-text {
   flex: 1;
   display: flex;
@@ -2814,15 +2814,6 @@ body[data-mode="light"] .sw-hint-items code {
   background: rgba(255, 215, 0, 0.14);
   color: #ffd700;
   border: 0.5px solid rgba(255, 215, 0, 0.3);
-}
-.lume-chip-amber {
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  background: rgba(255, 159, 10, 0.14);
-  color: #ff9f0a;
-  border: 0.5px solid rgba(255, 159, 10, 0.3);
 }
 
 /* Credits */

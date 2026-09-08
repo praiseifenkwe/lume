@@ -58,11 +58,10 @@ lume/
 
 ---
 
-## ☕ Support
+## 🌟 Community & Socials
 
 - ⭐ [Star on GitHub](https://github.com/praiseifenkwe/lume)
 - 𝕏 [Follow on X](https://x.com/praise_ifenkwe)
-- ☕ [Buy Me a Coffee](https://buymeacoffee.com/praiseifenkwe)
 
 ---
 
